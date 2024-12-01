@@ -1,19 +1,21 @@
-fx_version 'cerulean'
-game 'gta5'
-lua54 'yes'
+fx_version "cerulean"
+game "gta5"
+lua54 "yes"
 
-name 'echo_smugglerheist'
-author 'akaLucifer'
-version '1.0.0'
-description 'A cargo plane smuggling heist trial for EchoRP'
+name "echo_smugglerheist"
+author "akaLucifer"
+version "1.0.0"
+description "A cargo plane smuggling heist trial for EchoRP"
 
 shared_scripts {
-    '@ox_lib/init.lua',
+    "@ox_lib/init.lua",
+	"@qbx_core/modules/lib.lua",
+    "shared/*.lua",
 	"config/config.lua"
 }
 
 client_scripts {
-    '@qbx_core/modules/playerdata.lua', -- Remove this if not using Qbox
+    "@qbx_core/modules/playerdata.lua", -- Remove this if not using Qbox
     "config/client.lua",
     "client/*.lua"
 }
@@ -24,8 +26,8 @@ server_scripts {
 }
 
 dependencies {
-    '/onesync',
+    "/onesync",
     "ox_lib"
 }
 
-use_experimental_fxv2_oal 'yes'
+use_experimental_fxv2_oal "yes"
