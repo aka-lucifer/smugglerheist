@@ -9,7 +9,6 @@ local vehicle = {
 ---@param mph number -- Speed in MPH
 ---@return number
 function vehicle.convertSpeed(mph)
-    print("speed convert", config.travelSpeed, mph, mph * metersPerSecondConversion, math.round((mph * metersPerSecondConversion), 1))
     return math.round((mph * metersPerSecondConversion), 1)
 end
 
@@ -56,12 +55,9 @@ AddStateBagChangeHandler("cargoPlaneDriver", '', function(entity, _, value)
             vehicle.headToDestination(entity, planeEntity)
         end
     end
-
-    print("cargo driver", entity, netId)
 end)
 
 RegisterNetEvent("echo_smugglerheist:client:createdCargo", function(netId)
-    print("net id", netId)
     local entity, err = lib.waitFor(function()
         if NetworkDoesEntityExistWithNetworkId(netId) then
             return NetworkGetEntityFromNetworkId(netId)
@@ -69,9 +65,16 @@ RegisterNetEvent("echo_smugglerheist:client:createdCargo", function(netId)
     end, "timed out whilst getting entity handle from netId", 10000)
     
     if not entity then return error(err) end
-    print("plane net id bs", entity, netId)
+    lib.print.debug("Found entity handle from netId")
     vehicle.planeNet = netId
-    AddBlipForEntity(entity)
+
+    local blip = AddBlipForEntity(entity)
+    SetBlipSprite(blip, config.blip.cargoplane.sprite)
+    SetBlipColour(blip, config.blip.cargoplane.colour)
+    SetBlipRotation(blip, GetEntityHeading(entity))
+    BeginTextCommandSetBlipName("STRING")
+    AddTextComponentString("Cargo Plane")
+    EndTextCommandSetBlipName(blip)
 end)
 
 return vehicle
