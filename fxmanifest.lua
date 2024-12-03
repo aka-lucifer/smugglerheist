@@ -7,6 +7,10 @@ author "akaLucifer"
 version "1.0.0"
 description "A cargo plane smuggling heist trial for EchoRP"
 
+files {
+    "config/client.lua"
+}
+
 shared_scripts {
     "@ox_lib/init.lua",
 	"@qbx_core/modules/lib.lua",

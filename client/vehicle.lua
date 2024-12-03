@@ -1,9 +1,21 @@
+local config = require 'config.client'
+local metersPerSecondConversion = 0.44704
 local vehicle = {
     planeNet = nil,
     driverNet = nil
 }
 
+--- Converts MPH to meters per second.
+---@param mph number -- Speed in MPH
+---@return number
+function vehicle.convertSpeed(mph)
+    print("speed convert", config.travelSpeed, mph, mph * metersPerSecondConversion, math.round((mph * metersPerSecondConversion), 1))
+    return math.round((mph * metersPerSecondConversion), 1)
+end
 
+--- Applies to logic to make the plane head to the deliver cargo coords
+---@param driver integer
+---@param planeEntity integer
 function vehicle.headToDestination(driver, planeEntity)
     if not driver or not DoesEntityExist(driver) then return end
 
@@ -20,7 +32,7 @@ function vehicle.headToDestination(driver, planeEntity)
         -5204.93,
         340.37,
         4,
-        44.7, -- Speed (meters per second)
+        vehicle.convertSpeed(config.travelSpeed), -- Speed (meters per second)
         0.0,
         150.0,
         600.0, -- Max height
@@ -28,7 +40,12 @@ function vehicle.headToDestination(driver, planeEntity)
         1
     )
 
-    SetVehicleForwardSpeed(planeEntity, 44) -- Stops the freefall and makes it fly from current position
+    SetVehicleForwardSpeed(planeEntity, vehicle.convertSpeed(config.travelSpeed)) -- Stops the freefall and makes it fly from current position
+
+    while DoesEntityExist(planeEntity) do
+        print("speed", GetEntitySpeed(planeEntity), GetEntitySpeed(planeEntity) * 2.236936)
+        Wait(100)
+    end
 end
 
 AddStateBagChangeHandler("cargoPlaneDriver", '', function(entity, _, value)
