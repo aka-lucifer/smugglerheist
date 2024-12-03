@@ -41,11 +41,6 @@ function vehicle.headToDestination(driver, planeEntity)
     )
 
     SetVehicleForwardSpeed(planeEntity, vehicle.convertSpeed(config.travelSpeed)) -- Stops the freefall and makes it fly from current position
-
-    while DoesEntityExist(planeEntity) do
-        print("speed", GetEntitySpeed(planeEntity), GetEntitySpeed(planeEntity) * 2.236936)
-        Wait(100)
-    end
 end
 
 AddStateBagChangeHandler("cargoPlaneDriver", '', function(entity, _, value)
