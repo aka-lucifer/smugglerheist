@@ -9,6 +9,7 @@ function vehicle.headToDestination(driver, planeEntity)
 
     if not planeEntity or not DoesEntityExist(planeEntity) then return end
 
+    ControlLandingGear(planeEntity, 3)
     SetVehicleEngineOn(planeEntity, true, true, false)
     TaskPlaneMission(
         driver,
@@ -18,13 +19,16 @@ function vehicle.headToDestination(driver, planeEntity)
         -1325.82,
         -5204.93,
         340.37,
-        6,
-        1.0,
+        4,
+        44.7, -- Speed (meters per second)
         0.0,
         150.0,
-        500.0,
-        0.0
+        600.0, -- Max height
+        580.0, -- Min height
+        1
     )
+
+    SetVehicleForwardSpeed(planeEntity, 44) -- Stops the freefall and makes it fly from current position
 end
 
 AddStateBagChangeHandler("cargoPlaneDriver", '', function(entity, _, value)
