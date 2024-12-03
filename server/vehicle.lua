@@ -43,7 +43,7 @@ function vehicle.createCargo()
     while not DoesEntityExist(entity) do Wait(0) end
    
     SetEntityDistanceCullingRadius(entity, 999999.0) -- Have to handle it this way so it will be in scope all over the map as RPC for seating ped in vehicle is broken asf
-    TriggerClientEvent("netIdSync", -1, NetworkGetNetworkIdFromEntity(entity))
+    TriggerClientEvent("echo_smugglerheist:client:createdCargo", -1, NetworkGetNetworkIdFromEntity(entity))
 
     local ped = CreatePed(1, `s_m_y_pilot_01`, config.spawnCoords.x, config.spawnCoords.y, config.spawnCoords.z, config.spawnCoords.w, true, false)
     if ped and DoesEntityExist(ped) then

@@ -65,7 +65,7 @@ AddStateBagChangeHandler("cargoPlaneDriver", '', function(entity, _, value)
     print("cargo driver", entity, netId)
 end)
 
-RegisterNetEvent("netIdSync", function(netId)
+RegisterNetEvent("echo_smugglerheist:client:createdCargo", function(netId)
     print("net id", netId)
     local entity, err = lib.waitFor(function()
         if NetworkDoesEntityExistWithNetworkId(netId) then
