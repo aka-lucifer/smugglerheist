@@ -24,6 +24,11 @@ function vehicle.pilotExists()
     return vehicle.pilotHandle and DoesEntityExist(vehicle.pilotHandle) -- Checks if variable is defined and entity exists on server
 end
 
+---@return boolean
+function vehicle.planeExists()
+    return vehicle.planeHandle and DoesEntityExist(vehicle.planeHandle) -- Checks if variable is defined and entity exists on server
+end
+
 function vehicle.deleteCargo()
     if vehicle.cargoExists() then -- Make sure the plane actually exists
         DeleteEntity(vehicle.cargoHandle) -- Delete entity
@@ -67,16 +72,41 @@ function vehicle.createPlane(source)
         exports.qbx_core:DeleteVehicle(currentVehicle)
     end
 
-    local _, vehicle = qbx.spawnVehicle({
+    local _, entity = qbx.spawnVehicle({
         model = `lazer`,
         spawnSource = ped,
         warp = true,
     })
 
-    local plate = qbx.getVehiclePlate(vehicle)
+    local plate = qbx.getVehiclePlate(entity)
     exports.qbx_vehiclekeys:GiveKeys(source, plate)
 
-    vehicle.planeHandle = vehicle
+    vehicle.planeHandle = entity
+end
+
+function vehicle.startJetTask()
+    if not vehicle.cargoExists() or not vehicle.planeExists() then return end
+
+    CreateThread(function()
+        while vehicle.cargoExists() and vehicle.planeExists do
+            lib.print.info("Running interval on jet task")
+
+            local cargoCoords = GetEntityCoords(vehicle.cargoHandle, false)
+            local planeCoords = GetEntityCoords(vehicle.planeHandle, false)
+            local dist = #(cargoCoords - planeCoords)
+            local heightDifference = planeCoords.z - cargoCoords.z
+
+            if dist < config.distanceThreshold then
+                lib.print.warn("TOO CLOSE")
+            end
+
+            if dist < config.height.distance and heightDifference < config.height.threshold  then
+                lib.print.warn("TOO HIGH AND CLOSE")
+            end
+
+            Wait(config.jetTaskInterval)
+        end
+    end)
 end
 
 return vehicle
