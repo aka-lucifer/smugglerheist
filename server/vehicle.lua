@@ -3,12 +3,14 @@
 -- SPAWNING CRATES ON SERVER / DELETE ON RESTART
 -- DETECTION OF VEHICLE CRASHING/EXPLODING INTO GROUND
 -- LOGIC FOR HANDLING IF PEOPLE IN HEIST ARE TOO CLOSE TO PLANE OR TOO HIGH
+-- WHEN IT CRASHES (EXPLODES NEED LOGIC FOR LYING FLAT, THEN REMOVE BACK DOOR & SPAWN CRATES TO SEARCH)
 
 local config = require 'config.server'
 
 local vehicle = {
     cargoHandle = nil,
     pilotHandle = nil,
+    planeHandle = nil,
     spawnedJets = {}
 }
 
@@ -55,15 +57,26 @@ function vehicle.createCargo()
     vehicle.pilotHandle = ped
 end
 
-function vehicle.createPlane()
+--- Create plane for players to use to follow the cargoplane
+---@param source integer
+function vehicle.createPlane(source)
     if not vehicle.cargoExists then return end
-    local entity = CreateVehicleServerSetter(`lazer`, "plane", -137.32, 8515.78, 1391.48, 177.75)
-    while not DoesEntityExist(entity) do Wait(0) end
-    print("lazer")
-    local src = 1
-    local ped = GetPlayerPed(src)
-    print("ped", ped, entity)
-    TaskWarpPedIntoVehicle(ped, entity, -1)
+    local ped = GetPlayerPed(source)
+    local currentVehicle = GetVehiclePedIsIn(ped, false)
+    if currentVehicle and currentVehicle ~= 0 then
+        exports.qbx_core:DeleteVehicle(currentVehicle)
+    end
+
+    local _, vehicle = qbx.spawnVehicle({
+        model = `lazer`,
+        spawnSource = ped,
+        warp = true,
+    })
+
+    local plate = qbx.getVehiclePlate(vehicle)
+    exports.qbx_vehiclekeys:GiveKeys(source, plate)
+
+    vehicle.planeHandle = vehicle
 end
 
 return vehicle
