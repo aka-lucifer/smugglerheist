@@ -7,14 +7,14 @@
 local config = require 'config.server'
 
 local vehicle = {
-    planeHandle = nil,
+    cargoHandle = nil,
     pilotHandle = nil,
     spawnedJets = {}
 }
 
 ---@return boolean
-function vehicle.planeExists()
-    return vehicle.planeHandle and DoesEntityExist(vehicle.planeHandle) -- Checks if variable is defined and entity exists on server
+function vehicle.cargoExists()
+    return vehicle.cargoHandle and DoesEntityExist(vehicle.cargoHandle) -- Checks if variable is defined and entity exists on server
 end
 
 ---@return boolean
@@ -22,10 +22,10 @@ function vehicle.pilotExists()
     return vehicle.pilotHandle and DoesEntityExist(vehicle.pilotHandle) -- Checks if variable is defined and entity exists on server
 end
 
-function vehicle.deletePlane()
-    if vehicle.planeExists() then -- Make sure the plane actually exists
-        DeleteEntity(vehicle.planeHandle) -- Delete entity
-        vehicle.planeHandle = nil -- Set plane variable to null
+function vehicle.deleteCargo()
+    if vehicle.cargoExists() then -- Make sure the plane actually exists
+        DeleteEntity(vehicle.cargoHandle) -- Delete entity
+        vehicle.cargoHandle = nil -- Set plane variable to null
     end
 
     if vehicle.pilotExists() then -- Make sure the pilot actually exists
@@ -34,9 +34,9 @@ function vehicle.deletePlane()
     end
 end
 
-function vehicle.createPlane()
-    if vehicle.planeExists() then -- If the plane already exists delete it for whatever case
-        vehicle.deletePlane()
+function vehicle.createCargo()
+    if vehicle.cargoExists() then -- If the plane already exists delete it for whatever case
+        vehicle.deleteCargo()
     end
 
     local entity = CreateVehicleServerSetter(`cargoplane`, "plane", config.spawnCoords.x, config.spawnCoords.y, config.spawnCoords.z, config.spawnCoords.w)
@@ -51,8 +51,19 @@ function vehicle.createPlane()
     end
     SetEntityDistanceCullingRadius(ped, 999999.0) -- Have to handle it this way so it will be in scope all over the map as RPC for seating ped in vehicle is broken asf
 
-    vehicle.planeHandle = entity
+    vehicle.cargoHandle = entity
     vehicle.pilotHandle = ped
+end
+
+function vehicle.createPlane()
+    if not vehicle.cargoExists then return end
+    local entity = CreateVehicleServerSetter(`lazer`, "plane", -137.32, 8515.78, 1391.48, 177.75)
+    while not DoesEntityExist(entity) do Wait(0) end
+    print("lazer")
+    local src = 1
+    local ped = GetPlayerPed(src)
+    print("ped", ped, entity)
+    TaskWarpPedIntoVehicle(ped, entity, -1)
 end
 
 return vehicle
