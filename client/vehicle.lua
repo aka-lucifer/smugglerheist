@@ -20,9 +20,9 @@ function vehicle.headToDestination(driver, planeEntity)
 
     if not planeEntity or not DoesEntityExist(planeEntity) then return end
 
-    ControlLandingGear(planeEntity, 3)
-    SetVehicleEngineOn(planeEntity, true, true, false)
-    TaskPlaneMission(
+    ControlLandingGear(planeEntity, 3) -- Put landing gear away
+    SetVehicleEngineOn(planeEntity, true, true, false) -- Force engine on
+    TaskPlaneMission( -- Make the plane fly to coords
         driver,
         planeEntity,
         0,
@@ -51,7 +51,7 @@ AddStateBagChangeHandler("cargoPlaneDriver", '', function(entity, _, value)
             local planeEntity = NetworkGetEntityFromNetworkId(vehicle.planeNet)
             if not planeEntity or not DoesEntityExist(planeEntity) then return error("Plane entity doesn't exist or not found!") end
             
-            SetPedIntoVehicle(entity, planeEntity, -1)
+            SetPedIntoVehicle(entity, planeEntity, -1) -- Forces ped into driver seat as server side not working
             vehicle.headToDestination(entity, planeEntity)
         end
     end
