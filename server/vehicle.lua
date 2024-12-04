@@ -1,11 +1,11 @@
 -- THINGS THAT NEED DOING
 --
--- SPAWNING CRATES ON SERVER / DELETE ON RESTART
+-- SPAWNING CRATES ON SERVER / DELETE ON RESTART / maybe spawn locally
 -- DETECTION OF VEHICLE CRASHING/EXPLODING INTO GROUND
 -- WHEN IT CRASHES (EXPLODES NEED LOGIC FOR LYING FLAT, THEN REMOVE BACK DOOR & SPAWN CRATES TO SEARCH)
 
-local config = require 'config.server'
-local utils = require 'server.utils'
+local config = require "config.server"
+local utils = require "server.utils"
 
 local vehicle = {
     cargoHandle = nil,
@@ -40,14 +40,19 @@ end
 
 --- Delete cargoplane and mission plane if exists
 function vehicle.deleteCargo()
-    if vehicle.cargoExists() then -- Make sure the plane actually exists
+    if vehicle.cargoExists() then -- Make sure the cargoplane actually exists
         DeleteEntity(vehicle.cargoHandle) -- Delete entity
-        vehicle.cargoHandle = nil -- Set plane variable to null
+        vehicle.cargoHandle = nil -- Set cargoplane variable to null
     end
 
     if vehicle.pilotExists() then -- Make sure the pilot actually exists
         DeleteEntity(vehicle.pilotHandle) -- Delete entity
         vehicle.pilotHandle = nil -- Set pilot variable to null
+    end
+
+    if vehicle.planeExists() then -- Make sure the plane actually exists
+        DeleteEntity(vehicle.planeHandle) -- Delete entity
+        vehicle.planeHandle = nil -- Set plane variable to null
     end
 
     -- Delete jets if they still exist
@@ -94,13 +99,11 @@ function vehicle.createPlane(source)
     end
 
     local _, entity = qbx.spawnVehicle({
-        model = `lazer`,
-        spawnSource = ped,
-        warp = true,
+        model = config.missionPlane.model,
+        spawnSource = config.missionPlane.coords,
     })
 
-    local plate = qbx.getVehiclePlate(entity)
-    exports.qbx_vehiclekeys:GiveKeys(source, plate)
+    exports.qbx_vehiclekeys:GiveKeys(source, entity)
 
     vehicle.planeHandle = entity
 end
@@ -138,7 +141,7 @@ function vehicle.dispatchJets()
     end
 end
 
---- Creates the task of handling if you're too close or too high above the cargoplane
+--- Creates the task of handling if you"re too close or too high above the cargoplane
 function vehicle.startJetTask()
     if not vehicle.cargoExists() or not vehicle.planeExists() then return end
 
@@ -167,12 +170,12 @@ function vehicle.startJetTask()
                         local pedOwner = NetworkGetEntityOwner(ped)
                         if pedOwner > 0 then
                             lib.notify(pedOwner, {
-                                description = "You're flying too close/high, back off or jets will be dispatched!",
-                                type = 'error',
+                                description = "You\"re flying too close/high, back off or jets will be dispatched!",
+                                type = "error",
                                 duration = 5000,
                                 sound = {
-                                    name = 'Out_Of_Bounds_Timer',
-                                    set = 'DLC_HEISTS_GENERAL_FRONTEND_SOUNDS'
+                                    name = "Out_Of_Bounds_Timer",
+                                    set = "DLC_HEISTS_GENERAL_FRONTEND_SOUNDS"
                                 }
                             })
                         end
