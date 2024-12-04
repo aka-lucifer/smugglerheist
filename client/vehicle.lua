@@ -32,7 +32,7 @@ function vehicle.attachCrates(entity)
             icon = "fa-solid fa-box-open",
             distance = 2.0,
             canInteract = function()
-                return true
+                return MissionActive
             end,
             onSelect = function(data)
                 if data.entity and DoesEntityExist(data.entity) then

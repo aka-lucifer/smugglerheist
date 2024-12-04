@@ -13,9 +13,10 @@ function mission.start(source)
     local src = source --[[@as number]]
     mission.host = src
     mission.started = true
-    vehicle.createCargo(src)
+    vehicle.createCargo()
     vehicle.createPlane(src)
     vehicle.startDistTask()
+    TriggerClientEvent("echo_smugglerheist:client:startedMission", -1)
     TriggerClientEvent("echo_smugglerheist:client:sentNotify", src, locale('task.mission_start'))
 end
 
