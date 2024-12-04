@@ -1,3 +1,8 @@
+-- THINGS THAT NEED DOING
+--
+-- Client task for handling how close you are (showing minigame open prompt) & hiding minigame if active and no longer close enough
+-- Client task for placing each bomb
+
 lib.locale()
 
 local vehicle = require "server.vehicle"

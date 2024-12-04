@@ -83,9 +83,9 @@ function vehicle.headToDestination(driver, planeEntity)
         planeEntity,
         0,
         0,
-        -1325.82,
-        -5204.93,
-        340.37,
+        config.cargoDestination.x,
+        config.cargoDestination.y,
+        config.cargoDestination.z,
         4,
         vehicle.convertSpeed(config.travelSpeed), -- Speed (meters per second)
         0.0,

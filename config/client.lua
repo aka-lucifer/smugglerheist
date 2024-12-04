@@ -4,6 +4,7 @@ return {
         size = vec3(1.85, 1.1, 1.65),
         rotation = 33.75,
     },
+    cargoDestination = vec3(-1325.82, -5204.93, 600.0), -- Where the cargoplane will fly to, if it reaches here mission will cancel
     travelSpeed = 100.0, -- The speed the cargoplane will travel at in MPH
     blip = {
         cargoplane = {

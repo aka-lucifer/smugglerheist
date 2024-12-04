@@ -1,9 +1,3 @@
--- THINGS THAT NEED DOING
---
--- SPAWNING CRATES ON SERVER / DELETE ON RESTART / maybe spawn locally
--- DETECTION OF VEHICLE CRASHING/EXPLODING INTO GROUND
--- WHEN IT CRASHES (EXPLODES NEED LOGIC FOR LYING FLAT, THEN REMOVE BACK DOOR & SPAWN CRATES TO SEARCH)
-
 local config = require "config.server"
 
 local vehicle = {
@@ -71,12 +65,12 @@ function vehicle.createCargo()
         vehicle.deleteCargo()
     end
 
-    local entity = CreateVehicleServerSetter(`cargoplane`, "plane", config.spawnCoords.x, config.spawnCoords.y, config.spawnCoords.z, config.spawnCoords.w)
+    local entity = CreateVehicleServerSetter(`cargoplane`, "plane", config.cargoSpawn.x, config.cargoSpawn.y, config.cargoSpawn.z, config.cargoSpawn.w)
     while not DoesEntityExist(entity) do Wait(0) end
    
     SetEntityDistanceCullingRadius(entity, 999999.0) -- Have to handle it this way so it will be in scope all over the map as RPC for seating ped in vehicle is broken asf
     
-    local ped = CreatePed(1, `s_m_y_pilot_01`, config.spawnCoords.x, config.spawnCoords.y, config.spawnCoords.z, config.spawnCoords.w, true, false)
+    local ped = CreatePed(1, `s_m_y_pilot_01`, config.cargoSpawn.x, config.cargoSpawn.y, config.cargoSpawn.z, config.cargoSpawn.w, true, false)
     SetEntityDistanceCullingRadius(ped, 999999.0) -- Have to handle it this way so it will be in scope all over the map as RPC for seating ped in vehicle is broken asf
 
     vehicle.cargoHandle = entity
