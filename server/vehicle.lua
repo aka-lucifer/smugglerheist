@@ -6,13 +6,13 @@
 
 local config = require 'config.server'
 local utils = require 'server.utils'
-local dispatchedJets = false -- DEBUG VALUE NOT GOING TO BE USED IN PROD
 
 local vehicle = {
     cargoHandle = nil,
     pilotHandle = nil,
     planeHandle = nil,
     warningsRecieved = 0,
+    dispatchedJets = false,
     spawnedJets = {}
 }
 
@@ -108,11 +108,9 @@ end
 --- Create jets and send to client for handling attack logic
 function vehicle.dispatchJets()
     if not vehicle.cargoExists() then return end
-    local cargoPlaneCoords = GetEntityCoords(vehicle.cargoHandle, false)
     local cargoPlaneHeading = GetEntityHeading(vehicle.cargoHandle)
 
     for i = 1, config.jetCount do
-        -- local coords = vector3(cargoPlaneCoords.x + randomOffset(config.jetSpawnOffset), cargoPlaneCoords.y + randomOffset(config.jetSpawnOffset), cargoPlaneCoords.z + randomOffset(config.jetSpawnOffset))
         local coords = utils.getOffsetFromEntityInWorldCoords(
             vehicle.cargoHandle,
             randomOffset(config.jetSpawnOffset),
@@ -145,7 +143,7 @@ function vehicle.startJetTask()
     if not vehicle.cargoExists() or not vehicle.planeExists() then return end
 
     CreateThread(function()
-        while (vehicle.cargoExists() and vehicle.planeExists()) and not dispatchedJets do
+        while (vehicle.cargoExists() and vehicle.planeExists()) and not vehicle.dispatchedJets do
             lib.print.info("Running interval on jet task | Warnings: " .. vehicle.warningsRecieved)
 
             local cargoCoords = GetEntityCoords(vehicle.cargoHandle, false)
@@ -158,7 +156,7 @@ function vehicle.startJetTask()
                 vehicle.warningsRecieved += 1
                 if vehicle.warningsRecieved >= config.warningCount then
                     lib.print.info("Too many warnings recieved, dispatching jets")
-                    dispatchedJets = true
+                    vehicle.dispatchedJets = true
                     vehicle.dispatchJets()
                     return
                 end

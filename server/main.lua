@@ -2,8 +2,13 @@ local vehicle = require 'server.vehicle'
 
 AddEventHandler("onResourceStop", function(res)
     if GetCurrentResourceName() == res then
-        vehicle.deletePlane()
+        vehicle.deleteCargo()
     end
 end)
 
-RegisterCommand("plane", vehicle.createPlane, false)
+RegisterCommand("plane", function(source, args, raw)
+    local src = source
+    vehicle.createCargo(src)
+    vehicle.createPlane(src)
+    vehicle.startJetTask()
+end, false)
