@@ -1,0 +1,12 @@
+{
+    "task": {
+        "mission_start": "Enter the plane and locate the ~y~Cargoplane~w~ and ~y~hack the network ~w~to ~r~prevent jets~w~."
+    },
+    "error": {
+        "no_player": "~r~Unable to get player data!",
+        "mission_active": "~r~Mission already active!",
+        "mission_cooldown": "~r~Mission not available right now!",
+        "not_enough_police": "~r~Not enough government available!",
+        "cant_afford": "~r~Not enough funds!"
+    }
+}

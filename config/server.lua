@@ -1,6 +1,13 @@
 return {
-    spawnCoords = vec4(-309.05, 7903.28, 600.78, 170.4),
-    crateOffsets = {
+    requiredPolice = 0, -- How many police required in order to start the mission
+    missionCost = 100, -- How much the mission costs to start it
+    paymentType = "cash", -- How players will pay for the heist (supports cash or bank)
+    missionPlane = {
+        coords = vec4(1718.47, 3254.59, 41.32, 104.0),
+        model = `vestra`
+    },
+    spawnCoords = vec4(-309.05, 7903.28, 600.78, 170.4), -- Where the cargoplane spawns
+    crateOffsets = { -- NOT USED YET, DOCUMENTED FROM TESTING
         vec3(-1.7, 25.7, 0.0), -- FL
         vec3(1.6, 26.0, 0.0), -- FR
         vec3(-1.9, 2.4, 0.0), -- RL

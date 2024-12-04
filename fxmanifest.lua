@@ -11,7 +11,9 @@ ui_page "html/ui.html"
 
 files {
     "config/client.lua",
+    "config/shared.lua",
     "client/dui.lua",
+    "client/mission.lua",
 	'html/*.*'
 }
 
