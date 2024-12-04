@@ -15,6 +15,7 @@ function mission.start(source)
     mission.started = true
     vehicle.createCargo(src)
     vehicle.createPlane(src)
+    vehicle.startDistTask()
     TriggerClientEvent("echo_smugglerheist:client:sentNotify", src, locale('task.mission_start'))
 end
 

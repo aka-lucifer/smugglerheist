@@ -142,7 +142,7 @@ function vehicle.dispatchJets()
 end
 
 --- Creates the task of handling if you"re too close or too high above the cargoplane
-function vehicle.startJetTask()
+function vehicle.startDistTask()
     if not vehicle.cargoExists() or not vehicle.planeExists() then return end
 
     CreateThread(function()
