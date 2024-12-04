@@ -77,4 +77,70 @@ RegisterNetEvent("echo_smugglerheist:client:createdCargo", function(netId)
     EndTextCommandSetBlipName(blip)
 end)
 
+AddStateBagChangeHandler("cargoPlaneJet", '', function(entity, _, value)
+    local planeEntity, netId = GetEntityAndNetIdFromBagName(entity)
+    if planeEntity then
+        if not value or not value.pilotNet or not value.targetNet then return end
+        if not NetworkDoesEntityExistWithNetworkId(value.pilotNet) then return end
+        if not NetworkDoesEntityExistWithNetworkId(value.targetNet) then return end
+        local pilotEntity = NetworkGetEntityFromNetworkId(value.pilotNet)
+        local targetEntity = NetworkGetEntityFromNetworkId(value.targetNet)
+
+        if not planeEntity or not pilotEntity or not targetEntity then return error(err) end
+        lib.print.debug("Found entity handle from netId")
+    
+        local blip = AddBlipForEntity(planeEntity)
+        SetBlipSprite(blip, config.blip.jet.sprite)
+        SetBlipColour(blip, config.blip.jet.colour)
+        SetBlipRotation(blip, GetEntityHeading(planeEntity))
+        BeginTextCommandSetBlipName("STRING")
+        AddTextComponentString("Escort Jet")
+        EndTextCommandSetBlipName(blip)
+    
+        SetPedIntoVehicle(pilotEntity, planeEntity, -1) -- Forces ped into driver seat as server side not working
+        ControlLandingGear(planeEntity, 3) -- Put landing gear away
+        SetVehicleEngineOn(planeEntity, true, true, false) -- Force engine on
+        SetVehicleForwardSpeed(planeEntity, 100.0) -- Stops the freefall and makes it fly from current position
+    
+        CreateThread(function()
+            while DoesEntityExist(planeEntity) and DoesEntityExist(targetEntity) do
+
+                -- NEED TO CONVERT TO SERVER LOGIC
+                if IsEntityDead(targetEntity) then -- If your plane is destroyed make them wander away
+                    RemoveBlip(planeEntity)
+                    TaskVehicleDriveWander(pilotEntity, planeEntity, 30.0, 786603)
+                    SetTimeout(30000, function()
+                        DeleteEntity(planeEntity)
+                    end)
+                    return
+                end
+                -- ]] NEED TO CONVERT TO SERVER LOGIC
+
+                local targetPos = GetEntityCoords(targetEntity, false)
+
+                TaskPlaneMission(
+                    pilotEntity,
+                    planeEntity,
+                    targetEntity,
+                    GetPedInVehicleSeat(targetEntity, -1),
+                    targetPos.x,
+                    targetPos.y,
+                    targetPos.z,
+                    6,
+                    70.0,
+                    -1.0,
+                    30.0,
+                    500,
+                    50
+                )
+
+                SetCurrentPedVehicleWeapon(pilotEntity, `VEHICLE_WEAPON_SPACE_ROCKET`)
+                SetPedCanSwitchWeapon(pilotEntity, false)
+
+                Wait(1000)
+            end
+        end)
+    end
+end)
+
 return vehicle

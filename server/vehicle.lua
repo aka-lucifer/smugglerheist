@@ -2,10 +2,10 @@
 --
 -- SPAWNING CRATES ON SERVER / DELETE ON RESTART
 -- DETECTION OF VEHICLE CRASHING/EXPLODING INTO GROUND
--- LOGIC FOR HANDLING IF PEOPLE IN HEIST ARE TOO CLOSE TO PLANE OR TOO HIGH
 -- WHEN IT CRASHES (EXPLODES NEED LOGIC FOR LYING FLAT, THEN REMOVE BACK DOOR & SPAWN CRATES TO SEARCH)
 
 local config = require 'config.server'
+local utils = require 'server.utils'
 local dispatchedJets = false -- DEBUG VALUE NOT GOING TO BE USED IN PROD
 
 local vehicle = {
@@ -15,6 +15,10 @@ local vehicle = {
     warningsRecieved = 0,
     spawnedJets = {}
 }
+
+local function randomOffset(randomInt)
+    return math.random(math.abs(randomInt)*-1, randomInt)
+end
 
 ---@return boolean
 function vehicle.cargoExists()
@@ -31,6 +35,7 @@ function vehicle.planeExists()
     return vehicle.planeHandle and DoesEntityExist(vehicle.planeHandle) -- Checks if variable is defined and entity exists on server
 end
 
+--- Delete cargoplane and mission plane if exists
 function vehicle.deleteCargo()
     if vehicle.cargoExists() then -- Make sure the plane actually exists
         DeleteEntity(vehicle.cargoHandle) -- Delete entity
@@ -41,9 +46,20 @@ function vehicle.deleteCargo()
         DeleteEntity(vehicle.pilotHandle) -- Delete entity
         vehicle.pilotHandle = nil -- Set pilot variable to null
     end
+
+    -- Delete jets if they still exist
+    for _, jet in pairs(vehicle.spawnedJets) do
+        if DoesEntityExist(jet) then
+            DeleteEntity(jet)
+        end
+    end
+
+    vehicle.spawnedJets = {}
 end
 
-function vehicle.createCargo()
+--- Create cargoplane
+---@param source integer
+function vehicle.createCargo(source)
     if vehicle.cargoExists() then -- If the plane already exists delete it for whatever case
         vehicle.deleteCargo()
     end
@@ -52,7 +68,7 @@ function vehicle.createCargo()
     while not DoesEntityExist(entity) do Wait(0) end
    
     SetEntityDistanceCullingRadius(entity, 999999.0) -- Have to handle it this way so it will be in scope all over the map as RPC for seating ped in vehicle is broken asf
-    TriggerClientEvent("echo_smugglerheist:client:createdCargo", -1, NetworkGetNetworkIdFromEntity(entity))
+    TriggerClientEvent("echo_smugglerheist:client:createdCargo", source, NetworkGetNetworkIdFromEntity(entity))
 
     local ped = CreatePed(1, `s_m_y_pilot_01`, config.spawnCoords.x, config.spawnCoords.y, config.spawnCoords.z, config.spawnCoords.w, true, false)
     if ped and DoesEntityExist(ped) then
@@ -86,6 +102,41 @@ function vehicle.createPlane(source)
     vehicle.planeHandle = entity
 end
 
+--- Create jets and send to client for handling attack logic
+function vehicle.dispatchJets()
+    if not vehicle.cargoExists() then return end
+    local cargoPlaneCoords = GetEntityCoords(vehicle.cargoHandle, false)
+    local cargoPlaneHeading = GetEntityHeading(vehicle.cargoHandle)
+
+    for i = 1, config.jetCount do
+        -- local coords = vector3(cargoPlaneCoords.x + randomOffset(config.jetSpawnOffset), cargoPlaneCoords.y + randomOffset(config.jetSpawnOffset), cargoPlaneCoords.z + randomOffset(config.jetSpawnOffset))
+        local coords = utils.getOffsetFromEntityInWorldCoords(
+            vehicle.cargoHandle,
+            randomOffset(config.jetSpawnOffset),
+            -800.0,
+            30.0
+        )
+        
+        local entity = CreateVehicleServerSetter(`lazer`, "plane", coords.x, coords.y, coords.z, cargoPlaneHeading)
+        while not DoesEntityExist(entity) do Wait(0) end
+    
+        SetEntityDistanceCullingRadius(entity, 999999.0) -- Have to handle it this way so it will be in scope all over the map as RPC for seating ped in vehicle is broken asf
+
+        local ped = CreatePed(1, `s_m_y_pilot_01`, coords.x, coords.y, coords.z, cargoPlaneHeading, true, false)
+        if ped and DoesEntityExist(ped) then
+            Entity(ped).state:set("jetPlaneDriver", true, true)
+        end
+        SetEntityDistanceCullingRadius(ped, 999999.0) -- Have to handle it this way so it will be in scope all over the map as RPC for seating ped in vehicle is broken asf
+        
+        Entity(entity).state:set("cargoPlaneJet", {
+            pilotNet = NetworkGetNetworkIdFromEntity(ped),
+            targetNet = NetworkGetNetworkIdFromEntity(vehicle.planeHandle)
+        })
+
+        table.insert(vehicle.spawnedJets, entity)
+    end
+end
+
 --- Creates the task of handling if you're too close or too high above the cargoplane
 function vehicle.startJetTask()
     if not vehicle.cargoExists() or not vehicle.planeExists() then return end
@@ -105,7 +156,7 @@ function vehicle.startJetTask()
                 if vehicle.warningsRecieved >= config.warningCount then
                     lib.print.info("Too many warnings recieved, dispatching jets")
                     dispatchedJets = true
-                    -- dispatch code here maybe
+                    vehicle.dispatchJets()
                     return
                 end
 

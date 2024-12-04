@@ -16,4 +16,6 @@ return {
     warningCount = 3, -- How many warnings to give them before jets are dispatched
     resetWarnings = true, -- Reset warnings if you are no longer too close/high and you haven't hit the max warning count
     planeSeats = 4, -- How many seats the plane has, edit as needed
+    jetCount = 2, -- How many jets to dispatch when you trigger them
+    jetSpawnOffset = 300.0, -- What random offset to use when spawning jets
 }
