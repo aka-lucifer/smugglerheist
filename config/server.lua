@@ -12,5 +12,8 @@ return {
         distance = 200.0, -- How close you have to be in order for height to be detected
         threshold = 50.0 -- How high up alongside the distance you have to be, to be detected
     },
-    jetTaskInterval = 2000 -- Don't lower too much or it will lag your server
+    jetTaskInterval = 2000, -- Don't lower too much or it will lag your server
+    warningCount = 3, -- How many warnings to give them before jets are dispatched
+    resetWarnings = true, -- Reset warnings if you are no longer too close/high and you haven't hit the max warning count
+    planeSeats = 4, -- How many seats the plane has, edit as needed
 }

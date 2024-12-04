@@ -6,11 +6,13 @@
 -- WHEN IT CRASHES (EXPLODES NEED LOGIC FOR LYING FLAT, THEN REMOVE BACK DOOR & SPAWN CRATES TO SEARCH)
 
 local config = require 'config.server'
+local dispatchedJets = false -- DEBUG VALUE NOT GOING TO BE USED IN PROD
 
 local vehicle = {
     cargoHandle = nil,
     pilotHandle = nil,
     planeHandle = nil,
+    warningsRecieved = 0,
     spawnedJets = {}
 }
 
@@ -84,24 +86,53 @@ function vehicle.createPlane(source)
     vehicle.planeHandle = entity
 end
 
+--- Creates the task of handling if you're too close or too high above the cargoplane
 function vehicle.startJetTask()
     if not vehicle.cargoExists() or not vehicle.planeExists() then return end
 
     CreateThread(function()
-        while vehicle.cargoExists() and vehicle.planeExists do
-            lib.print.info("Running interval on jet task")
+        while (vehicle.cargoExists() and vehicle.planeExists()) and not dispatchedJets do
+            lib.print.info("Running interval on jet task | Warnings: " .. vehicle.warningsRecieved)
 
             local cargoCoords = GetEntityCoords(vehicle.cargoHandle, false)
             local planeCoords = GetEntityCoords(vehicle.planeHandle, false)
             local dist = #(cargoCoords - planeCoords)
             local heightDifference = planeCoords.z - cargoCoords.z
 
-            if dist < config.distanceThreshold then
-                lib.print.warn("TOO CLOSE")
-            end
+            if (dist < config.distanceThreshold) or (dist < config.height.distance and heightDifference > config.height.threshold) then
+                lib.print.warn("TOO CLOSE OR HIGH")
+                vehicle.warningsRecieved += 1
+                if vehicle.warningsRecieved >= config.warningCount then
+                    lib.print.info("Too many warnings recieved, dispatching jets")
+                    dispatchedJets = true
+                    -- dispatch code here maybe
+                    return
+                end
 
-            if dist < config.height.distance and heightDifference < config.height.threshold  then
-                lib.print.warn("TOO HIGH AND CLOSE")
+                for i = -1, config.planeSeats - 2 do
+                    local ped = GetPedInVehicleSeat(vehicle.planeHandle, i)
+                    if ped > 0 then
+                        local pedOwner = NetworkGetEntityOwner(ped)
+                        if pedOwner > 0 then
+                            lib.notify(pedOwner, {
+                                description = "You're flying too close/high, back off or jets will be dispatched!",
+                                type = 'error',
+                                duration = 5000,
+                                sound = {
+                                    name = 'Out_Of_Bounds_Timer',
+                                    set = 'DLC_HEISTS_GENERAL_FRONTEND_SOUNDS'
+                                }
+                            })
+                        end
+                    end
+                end
+
+                Wait(3000)
+            else
+                if config.resetWarnings and vehicle.warningsRecieved > 0 then
+                    lib.print.info("No longer close or high enough, resetting warnings recieved")
+                    vehicle.warningsRecieved = 0
+                end
             end
 
             Wait(config.jetTaskInterval)
