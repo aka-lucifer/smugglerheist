@@ -5,7 +5,6 @@
 -- WHEN IT CRASHES (EXPLODES NEED LOGIC FOR LYING FLAT, THEN REMOVE BACK DOOR & SPAWN CRATES TO SEARCH)
 
 local config = require "config.server"
-local utils = require "server.utils"
 
 local vehicle = {
     cargoHandle = nil,
@@ -13,7 +12,8 @@ local vehicle = {
     planeHandle = nil,
     warningsRecieved = 0,
     dispatchedJets = false,
-    spawnedJets = {}
+    spawnedJets = {},
+    openingCrate = false
 }
 
 --- Returns a random value between negative and positive of the provided int
@@ -115,7 +115,7 @@ function vehicle.dispatchJets()
     local cargoPlaneHeading = GetEntityHeading(vehicle.cargoHandle)
 
     for i = 1, config.jetCount do
-        local coords = utils.getOffsetFromEntityInWorldCoords(
+        local coords = GetOffsetFromEntityInWorldCoords(
             vehicle.cargoHandle,
             randomOffset(config.jetSpawnOffset),
             -800.0,
@@ -195,5 +195,20 @@ function vehicle.startDistTask()
         end
     end)
 end
+
+---@param crateIndex integer
+RegisterNetEvent("echo_smugglerheist:server:openCrate", function(crateIndex)
+    if not crateIndex or type(crateIndex) ~= "number" then return end
+    local player = exports.qbx_core:GetPlayer(source)
+    if not player then return end
+
+    -- Use this to prevent open crate spam/possible exploit
+    if vehicle.openingCrate then return end
+    vehicle.openingCrate = true
+
+    player.Functions.AddMoney("cash", math.random(1000, 2000), "echo_smugglerheist - open crate") -- replace with item
+    TriggerClientEvent("echo_smugglerheist:client:openCrate", -1, crateIndex)
+    vehicle.openingCrate = false
+end)
 
 return vehicle

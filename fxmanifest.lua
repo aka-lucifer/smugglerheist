@@ -14,6 +14,7 @@ files {
     "config/shared.lua",
     "client/dui.lua",
     "client/mission.lua",
+    "client/vehicle.lua",
 	'html/*.*'
 }
 
@@ -27,12 +28,12 @@ shared_scripts {
 client_scripts {
     "@qbx_core/modules/playerdata.lua", -- Remove this if not using Qbox
     "config/client.lua",
-    "client/*.lua"
+    "client/main.lua"
 }
 
 server_scripts {
     "config/server.lua",
-    "server/*.lua"
+    "server/main.lua"
 }
 
 dependencies {

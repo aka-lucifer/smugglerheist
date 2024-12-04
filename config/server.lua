@@ -6,13 +6,8 @@ return {
         coords = vec4(1718.47, 3254.59, 41.32, 104.0),
         model = `vestra`
     },
-    spawnCoords = vec4(-309.05, 7903.28, 600.78, 170.4), -- Where the cargoplane spawns
-    crateOffsets = { -- NOT USED YET, DOCUMENTED FROM TESTING
-        vec3(-1.7, 25.7, 0.0), -- FL
-        vec3(1.6, 26.0, 0.0), -- FR
-        vec3(-1.9, 2.4, 0.0), -- RL
-        vec3(1.9, 2.5, 0.0) -- RR
-    },
+    -- spawnCoords = vec4(-309.05, 7903.28, 600.78, 170.4), -- Where the cargoplane spawns
+    spawnCoords = vec4(-278.27, 5762.97, 773.13, 168.82),
     destinationCoords = vec3(-1325.82, -5204.93, 866.37), -- Where the plane will fly to, if it reaches here mission will cancel
     distanceThreshold = 150.0, -- How close the plane has to be to the cargoplane to dispatch jets
     height = {

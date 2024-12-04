@@ -1,22 +1,67 @@
 local config = require 'config.client'
 local metersPerSecondConversion = 0.44704
 local vehicle = {
-    planeNet = nil
+    planeNet = nil,
+    spawnedCrates = {}
 }
 
-AddEventHandler('gameEventTriggered', function (name, args)
-    if name == 'CEventNetworkEntityDamage' then
-        local entity = args[1]
-        local isDestroyed = args[6] == 1
-        local weapon = args[7]
+function vehicle.attachCrates(entity)
+    if not vehicle.planeNet or NetToVeh(vehicle.planeNet) ~= entity then return end 
 
-        if entity ~= NetToVeh(vehicle.planeNet) then return end
-        if not isDestroyed then return end
-        if weapon ~= `WEAPON_EXPLOSION` then return end
+    lib.requestModel(`ex_prop_crate_closed_mw`)
+    for i = 1, #config.crateOffsets do
+        local coords = GetOffsetFromEntityInWorldCoords(entity, config.crateOffsets[i].x, config.crateOffsets[i].y, config.crateOffsets[i].z - 4.0)
+        local obj = CreateObject(`ex_prop_crate_closed_mw`, coords.x, coords.y, coords.z, false, false, false)
+        local exists = lib.waitFor(function()
+            if DoesEntityExist(obj) then return true end
+        end)
 
-        lib.print.info("Cargoplane Crashed With Explosion")
+        if not exists then return end
+
+        FreezeEntityPosition(entity, true) -- Freeze crate position
+        local planeRot = GetEntityRotation(entity, 2)
+        SetEntityRotation(obj, planeRot.x, planeRot.y, planeRot.z, 2, false) -- Make sure plane and crate have some rotation
+        SetEntityNoCollisionEntity(entity, obj, false) -- Disables collision between box and plane
+        table.insert(vehicle.spawnedCrates, obj)
     end
-end)
+
+    exports.ox_target:addLocalEntity(vehicle.spawnedCrates, {
+        {
+            name = "collect_crate",
+            label = "Open Crate",
+            icon = "fa-solid fa-box-open",
+            distance = 2.0,
+            canInteract = function()
+                return true
+            end,
+            onSelect = function(data)
+                if data.entity and DoesEntityExist(data.entity) then
+                    local index = -1
+                    for i = 1, #vehicle.spawnedCrates do
+                        if vehicle.spawnedCrates[i] == data.entity then
+                            index = i
+                            break
+                        end
+                    end
+
+                    if index ~= -1 then
+                        TriggerServerEvent("echo_smugglerheist:server:openCrate", index)
+                    end
+                end
+            end
+        }
+    })
+end
+
+function vehicle.deleteCrates()
+    for i = 1, #vehicle.spawnedCrates do
+        if vehicle.spawnedCrates[i] and DoesEntityExist(vehicle.spawnedCrates[i]) then
+            DeleteEntity(vehicle.spawnedCrates[i])
+        end
+    end
+
+    vehicle.spawnedCrates = {}
+end
 
 --- Converts MPH to meters per second.
 ---@param mph number -- Speed in MPH
@@ -150,6 +195,16 @@ AddStateBagChangeHandler("cargoPlaneJet", '', function(entity, _, value)
                 Wait(1000)
             end
         end)
+    end
+end)
+
+---@param crateIndex integer
+RegisterNetEvent("echo_smugglerheist:client:openCrate", function(crateIndex)
+    if not crateIndex or type(crateIndex) ~= "number" then return end
+    if vehicle.spawnedCrates[crateIndex] and DoesEntityExist(vehicle.spawnedCrates[crateIndex]) then
+        exports.ox_target:removeLocalEntity(vehicle.spawnedCrates[crateIndex], "collect_crate")
+        DeleteEntity(vehicle.spawnedCrates[crateIndex])
+        table.remove(vehicle.spawnedCrates, crateIndex)
     end
 end)
 
