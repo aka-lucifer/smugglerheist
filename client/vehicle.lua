@@ -1,9 +1,22 @@
 local config = require 'config.client'
 local metersPerSecondConversion = 0.44704
 local vehicle = {
-    planeNet = nil,
-    driverNet = nil
+    planeNet = nil
 }
+
+AddEventHandler('gameEventTriggered', function (name, args)
+    if name == 'CEventNetworkEntityDamage' then
+        local entity = args[1]
+        local isDestroyed = args[6] == 1
+        local weapon = args[7]
+
+        if entity ~= NetToVeh(vehicle.planeNet) then return end
+        if not isDestroyed then return end
+        if weapon ~= `WEAPON_EXPLOSION` then return end
+
+        lib.print.info("Cargoplane Crashed With Explosion")
+    end
+end)
 
 --- Converts MPH to meters per second.
 ---@param mph number -- Speed in MPH
@@ -71,6 +84,7 @@ AddStateBagChangeHandler("heistCargoPlane", '', function(entity, _, value)
         local pilotEntity = NetworkGetEntityFromNetworkId(value.pilotNet)
 
         if not planeEntity or not pilotEntity then return error(err) end
+        vehicle.planeNet = netId
         lib.print.info("Found entity handle from netId")
 
         vehicle.makeBlip(planeEntity, config.blip.cargoplane)
@@ -101,14 +115,15 @@ AddStateBagChangeHandler("cargoPlaneJet", '', function(entity, _, value)
             while DoesEntityExist(planeEntity) and DoesEntityExist(targetEntity) do
 
                 -- NEED TO CONVERT TO SERVER LOGIC
-                if IsEntityDead(targetEntity) then -- If your plane is destroyed make them wander away
-                    RemoveBlip(planeEntity)
-                    TaskVehicleDriveWander(pilotEntity, planeEntity, 30.0, 786603)
-                    SetTimeout(30000, function()
-                        DeleteEntity(planeEntity)
-                    end)
-                    return
-                end
+                print("destroyed", IsEntityDead(targetEntity), GetVehicleEngineHealth(targetEntity), GetVehicleEngineHealth(targetEntity) <= -4000)
+                -- if IsEntityDead(targetEntity) then -- If your plane is destroyed make them wander away
+                --     RemoveBlip(planeEntity)
+                --     TaskVehicleDriveWander(pilotEntity, planeEntity, 30.0, 786603)
+                --     SetTimeout(30000, function()
+                --         DeleteEntity(planeEntity)
+                --     end)
+                --     return
+                -- end
                 -- ]] NEED TO CONVERT TO SERVER LOGIC
 
                 local targetPos = GetEntityCoords(targetEntity, false)

@@ -14,8 +14,5 @@ CreateThread(function()
 end)
 
 RegisterCommand("plane", function(source, args, raw)
-    local src = source
-    vehicle.createCargo(src)
-    vehicle.createPlane(src)
-    vehicle.startJetTask()
+    vehicle.createCargo()
 end, false)
