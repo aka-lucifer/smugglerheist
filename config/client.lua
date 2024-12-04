@@ -8,11 +8,13 @@ return {
     blip = {
         cargoplane = {
             sprite = 307,
-            colour = 1
+            colour = 1,
+            name = "Cargo Plane"
         },
         jet = {
             sprite = 16,
-            colour = 1
+            colour = 1,
+            name = "Escort Jet"
         }
     },
 }

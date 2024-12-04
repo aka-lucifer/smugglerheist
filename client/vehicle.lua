@@ -20,8 +20,6 @@ function vehicle.headToDestination(driver, planeEntity)
 
     if not planeEntity or not DoesEntityExist(planeEntity) then return end
 
-    ControlLandingGear(planeEntity, 3) -- Put landing gear away
-    SetVehicleEngineOn(planeEntity, true, true, false) -- Force engine on
     TaskPlaneMission( -- Make the plane fly to coords
         driver,
         planeEntity,
@@ -42,41 +40,47 @@ function vehicle.headToDestination(driver, planeEntity)
     SetVehicleForwardSpeed(planeEntity, vehicle.convertSpeed(config.travelSpeed)) -- Stops the freefall and makes it fly from current position
 end
 
-AddStateBagChangeHandler("cargoPlaneDriver", '', function(entity, _, value)
-    local entity, netId = GetEntityAndNetIdFromBagName(entity)
-    if entity then
-        vehicle.driverNet = netId
+--- Make a blip for the passed entity with the provided fields
+---@param entity integer
+---@param blipData BlipData
+function vehicle.makeBlip(entity, blipData)
+    local blip = AddBlipForEntity(entity)
+    SetBlipSprite(blip, blipData.sprite)
+    SetBlipColour(blip, blipData.colour)
+    SetBlipRotation(blip, GetEntityHeading(entity))
+    BeginTextCommandSetBlipName("STRING")
+    AddTextComponentString(blipData.name)
+    EndTextCommandSetBlipName(blip)
+end
 
-        if vehicle.planeNet then
-            local planeEntity = NetworkGetEntityFromNetworkId(vehicle.planeNet)
-            if not planeEntity or not DoesEntityExist(planeEntity) then return error("Plane entity doesn't exist or not found!") end
-            
-            SetPedIntoVehicle(entity, planeEntity, -1) -- Forces ped into driver seat as server side not working
-            vehicle.headToDestination(entity, planeEntity)
-        end
+--- Starts up plane
+---@param pilot integer
+---@param vehicle integer
+function vehicle.startUp(pilot, vehicle)
+    SetPedIntoVehicle(pilot, vehicle, -1) -- Forces ped into driver seat as server side not working
+    ControlLandingGear(vehicle, 3) -- Put landing gear away
+    SetVehicleEngineOn(vehicle, true, true, false) -- Force engine on
+end
+
+-- Cargoplane & Pilot
+AddStateBagChangeHandler("heistCargoPlane", '', function(entity, _, value)
+    local planeEntity, netId = GetEntityAndNetIdFromBagName(entity)
+    if planeEntity then
+        if not value or not value.pilotNet then return end
+        if not NetworkDoesEntityExistWithNetworkId(value.pilotNet) then return end
+        local pilotEntity = NetworkGetEntityFromNetworkId(value.pilotNet)
+
+        if not planeEntity or not pilotEntity then return error(err) end
+        lib.print.info("Found entity handle from netId")
+
+        vehicle.makeBlip(planeEntity, config.blip.cargoplane)
+        vehicle.startUp(pilotEntity, planeEntity)
+        vehicle.headToDestination(pilotEntity, planeEntity)
     end
 end)
 
-RegisterNetEvent("echo_smugglerheist:client:createdCargo", function(netId)
-    local entity, err = lib.waitFor(function()
-        if NetworkDoesEntityExistWithNetworkId(netId) then
-            return NetworkGetEntityFromNetworkId(netId)
-        end
-    end, "timed out whilst getting entity handle from netId", 10000)
-    
-    if not entity then return error(err) end
-    lib.print.debug("Found entity handle from netId")
-    vehicle.planeNet = netId
 
-    local blip = AddBlipForEntity(entity)
-    SetBlipSprite(blip, config.blip.cargoplane.sprite)
-    SetBlipColour(blip, config.blip.cargoplane.colour)
-    SetBlipRotation(blip, GetEntityHeading(entity))
-    BeginTextCommandSetBlipName("STRING")
-    AddTextComponentString("Cargo Plane")
-    EndTextCommandSetBlipName(blip)
-end)
-
+-- Military Jets
 AddStateBagChangeHandler("cargoPlaneJet", '', function(entity, _, value)
     local planeEntity, netId = GetEntityAndNetIdFromBagName(entity)
     if planeEntity then
@@ -87,19 +91,10 @@ AddStateBagChangeHandler("cargoPlaneJet", '', function(entity, _, value)
         local targetEntity = NetworkGetEntityFromNetworkId(value.targetNet)
 
         if not planeEntity or not pilotEntity or not targetEntity then return error(err) end
-        lib.print.debug("Found entity handle from netId")
+        lib.print.info("Found entity handle from netId")
     
-        local blip = AddBlipForEntity(planeEntity)
-        SetBlipSprite(blip, config.blip.jet.sprite)
-        SetBlipColour(blip, config.blip.jet.colour)
-        SetBlipRotation(blip, GetEntityHeading(planeEntity))
-        BeginTextCommandSetBlipName("STRING")
-        AddTextComponentString("Escort Jet")
-        EndTextCommandSetBlipName(blip)
-    
-        SetPedIntoVehicle(pilotEntity, planeEntity, -1) -- Forces ped into driver seat as server side not working
-        ControlLandingGear(planeEntity, 3) -- Put landing gear away
-        SetVehicleEngineOn(planeEntity, true, true, false) -- Force engine on
+        vehicle.makeBlip(planeEntity, config.blip.jet)
+        vehicle.startUp(pilotEntity, planeEntity)
         SetVehicleForwardSpeed(planeEntity, 100.0) -- Stops the freefall and makes it fly from current position
     
         CreateThread(function()

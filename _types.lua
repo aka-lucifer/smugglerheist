@@ -1,0 +1,4 @@
+---@class BlipData
+---@field sprite integer
+---@field colour integer
+---@field name string

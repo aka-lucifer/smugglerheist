@@ -66,8 +66,7 @@ function vehicle.deleteCargo()
 end
 
 --- Create cargoplane
----@param source integer
-function vehicle.createCargo(source)
+function vehicle.createCargo()
     if vehicle.cargoExists() then -- If the plane already exists delete it for whatever case
         vehicle.deleteCargo()
     end
@@ -76,16 +75,16 @@ function vehicle.createCargo(source)
     while not DoesEntityExist(entity) do Wait(0) end
    
     SetEntityDistanceCullingRadius(entity, 999999.0) -- Have to handle it this way so it will be in scope all over the map as RPC for seating ped in vehicle is broken asf
-    TriggerClientEvent("echo_smugglerheist:client:createdCargo", source, NetworkGetNetworkIdFromEntity(entity))
-
+    
     local ped = CreatePed(1, `s_m_y_pilot_01`, config.spawnCoords.x, config.spawnCoords.y, config.spawnCoords.z, config.spawnCoords.w, true, false)
-    if ped and DoesEntityExist(ped) then
-        Entity(ped).state:set("cargoPlaneDriver", true, true)
-    end
     SetEntityDistanceCullingRadius(ped, 999999.0) -- Have to handle it this way so it will be in scope all over the map as RPC for seating ped in vehicle is broken asf
 
     vehicle.cargoHandle = entity
     vehicle.pilotHandle = ped
+
+    Entity(entity).state:set("heistCargoPlane", {
+        pilotNet = NetworkGetNetworkIdFromEntity(ped)
+    })
 end
 
 --- Create plane for players to use to follow the cargoplane
