@@ -31,3 +31,11 @@ end)
 CreateThread(function()
     mission.setup()
 end)
+
+RegisterCommand("startminigame", function()
+    print("win?", exports.fallouthacking:start(2, 10))
+end, false)
+
+RegisterCommand("endminigame", function()
+    exports.fallouthacking:cancel()
+end, false)
