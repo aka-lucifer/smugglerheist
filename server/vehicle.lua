@@ -16,6 +16,9 @@ local vehicle = {
     spawnedJets = {}
 }
 
+--- Returns a random value between negative and positive of the provided int
+---@param randomInt integer Field to get a random value from 
+---@return integer
 local function randomOffset(randomInt)
     return math.random(math.abs(randomInt)*-1, randomInt)
 end
