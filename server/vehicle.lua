@@ -102,7 +102,9 @@ function vehicle.createPlane(source)
         spawnSource = config.missionPlane.coords,
     })
 
+    Entity(entity).state:set('doorslockstate', 1, true)
     exports.qbx_vehiclekeys:GiveKeys(source, entity)
+    
 
     vehicle.planeHandle = entity
 end
