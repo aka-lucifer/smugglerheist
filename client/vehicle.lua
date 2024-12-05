@@ -120,6 +120,52 @@ function vehicle.startUp(pilot, vehicle)
     SetVehicleEngineOn(vehicle, true, true, false) -- Force engine on
 end
 
+--- Make the jet attack a specified target
+---@param pilot integer Ped pilot handle
+---@param plane integer Jet vehicle handle
+---@param target integer Target vehicle handle
+function vehicle.startAttacking(pilot, plane, target)
+    CreateThread(function()
+        while DoesEntityExist(plane) and DoesEntityExist(target) do
+
+            -- NEED TO CONVERT TO SERVER LOGIC
+            print("destroyed", IsEntityDead(target), GetVehicleEngineHealth(target), GetVehicleEngineHealth(target))
+            -- if IsEntityDead(target) then -- If your plane is destroyed make them wander away
+            --     RemoveBlip(plane)
+            --     TaskVehicleDriveWander(pilot, plane, 30.0, 786603)
+            --     SetTimeout(30000, function()
+            --         DeleteEntity(plane)
+            --     end)
+            --     return
+            -- end
+            -- ]] NEED TO CONVERT TO SERVER LOGIC
+
+            local targetPos = GetEntityCoords(target, false)
+
+            TaskPlaneMission(
+                pilot,
+                plane,
+                target,
+                GetPedInVehicleSeat(target, -1),
+                targetPos.x,
+                targetPos.y,
+                targetPos.z,
+                6,
+                70.0,
+                -1.0,
+                30.0,
+                500,
+                50
+            )
+
+            SetCurrentPedVehicleWeapon(pilot, `VEHICLE_WEAPON_SPACE_ROCKET`)
+            SetPedCanSwitchWeapon(pilot, false)
+
+            Wait(1000)
+        end
+    end)
+end
+
 -- Cargoplane & Pilot
 AddStateBagChangeHandler("heistCargoPlane", '', function(entity, _, value)
     local planeEntity, netId = GetEntityAndNetIdFromBagName(entity)
@@ -152,49 +198,10 @@ AddStateBagChangeHandler("cargoPlaneJet", '', function(entity, _, value)
         if not planeEntity or not pilotEntity or not targetEntity then return error(err) end
         lib.print.info("Found entity handle from netId")
     
-        vehicle.makeBlip(planeEntity, config.blip.jet)
-        vehicle.startUp(pilotEntity, planeEntity)
+        vehicle.makeBlip(planeEntity, config.blip.jet) -- Register jet blip
+        vehicle.startUp(pilotEntity, planeEntity) -- Start up the jet engine
         SetVehicleForwardSpeed(planeEntity, 100.0) -- Stops the freefall and makes it fly from current position
-    
-        CreateThread(function()
-            while DoesEntityExist(planeEntity) and DoesEntityExist(targetEntity) do
-
-                -- NEED TO CONVERT TO SERVER LOGIC
-                print("destroyed", IsEntityDead(targetEntity), GetVehicleEngineHealth(targetEntity), GetVehicleEngineHealth(targetEntity) <= -4000)
-                -- if IsEntityDead(targetEntity) then -- If your plane is destroyed make them wander away
-                --     RemoveBlip(planeEntity)
-                --     TaskVehicleDriveWander(pilotEntity, planeEntity, 30.0, 786603)
-                --     SetTimeout(30000, function()
-                --         DeleteEntity(planeEntity)
-                --     end)
-                --     return
-                -- end
-                -- ]] NEED TO CONVERT TO SERVER LOGIC
-
-                local targetPos = GetEntityCoords(targetEntity, false)
-
-                TaskPlaneMission(
-                    pilotEntity,
-                    planeEntity,
-                    targetEntity,
-                    GetPedInVehicleSeat(targetEntity, -1),
-                    targetPos.x,
-                    targetPos.y,
-                    targetPos.z,
-                    6,
-                    70.0,
-                    -1.0,
-                    30.0,
-                    500,
-                    50
-                )
-
-                SetCurrentPedVehicleWeapon(pilotEntity, `VEHICLE_WEAPON_SPACE_ROCKET`)
-                SetPedCanSwitchWeapon(pilotEntity, false)
-
-                Wait(1000)
-            end
-        end)
+        vehicle.startAttacking(pilotEntity, planeEntity, targetEntity) -- Make the jet attack the mission plane
     end
 end)
 
