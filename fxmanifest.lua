@@ -10,12 +10,13 @@ description "A cargo plane smuggling heist trial for EchoRP"
 ui_page "html/ui.html"
 
 files {
+	'html/*.*',
+    'locales/*.json',
     "config/client.lua",
     "config/shared.lua",
     "client/dui.lua",
     "client/mission.lua",
-    "client/vehicle.lua",
-	'html/*.*'
+    "client/vehicle.lua"
 }
 
 shared_scripts {
