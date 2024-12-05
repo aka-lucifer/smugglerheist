@@ -1,7 +1,8 @@
 {
     "task": {
         "mission_start": "Enter the plane and locate the ~y~Cargoplane~w~ and ~y~hack the network ~w~to ~r~prevent jets~w~.",
-        "plant_bombs": "~y~Parachute ~w~onto the plane and plants ~r~bombs ~w~ on each ~y~wing~w~."
+        "plant_bombs": "~y~Parachute ~w~onto the plane and plants ~r~bombs ~w~ on each ~y~wing~w~.",
+        "escape": "~r~Escape the plane ~w~and collect the ~y~loot ~w~once it ~r~crashes~w~."
     },
     "error": {
         "no_player": "~r~Unable to get player data!",

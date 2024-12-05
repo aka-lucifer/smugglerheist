@@ -40,6 +40,8 @@ AddEventHandler('gameEventTriggered', function (name, args)
             Wait(5)
         end
 
+        if not GlobalState["echo_smugglerheist:bombed"] then return end -- Disable looting unless done by bombs
+
         -- NOT IDEAl, SOMETIMES PLACES INTO WALLS, NEED TO FIND A BETTER METHOD FOR THIS
         SetVehicleOnGroundProperly(entity)
         -- SetEntityRotation(entity, config.flatRotation.x, config.flatRotation.y, config.flatRotation.z, 2, false)

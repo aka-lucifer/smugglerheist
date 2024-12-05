@@ -13,8 +13,8 @@ function vehicle.attachCrates(entity)
     if not vehicle.cargoNet or NetToVeh(vehicle.cargoNet) ~= entity then return end 
 
     lib.requestModel(`ex_prop_crate_closed_mw`)
-    for i = 1, #config.crateOffsets do
-        local coords = GetOffsetFromEntityInWorldCoords(entity, config.crateOffsets[i].x, config.crateOffsets[i].y, config.crateOffsets[i].z - 4.0)
+    for i = 1, #sharedConfig.crateOffsets do
+        local coords = GetOffsetFromEntityInWorldCoords(entity, sharedConfig.crateOffsets[i].x, sharedConfig.crateOffsets[i].y, sharedConfig.crateOffsets[i].z - 4.0)
         local obj = CreateObject(`ex_prop_crate_closed_mw`, coords.x, coords.y, coords.z, false, false, false)
         local exists = lib.waitFor(function()
             if DoesEntityExist(obj) then return true end
@@ -36,7 +36,7 @@ function vehicle.attachCrates(entity)
             icon = "fa-solid fa-box-open",
             distance = 2.0,
             canInteract = function()
-                return GlobalState["echo_smugglerheist:started"] and LoggedIn
+                return GlobalState["echo_smugglerheist:started"] and GlobalState["echo_smugglerheist:bombed"] and LoggedIn
             end,
             onSelect = function(data)
                 if data.entity and DoesEntityExist(data.entity) then
@@ -134,7 +134,8 @@ function vehicle.hackPlane()
 
     CreateThread(function()
         hackingPlane = true
-        local success = exports.fallouthacking:start(math.random(6, 8), 5)
+        -- local success = exports.fallouthacking:start(math.random(6, 8), 5)
+        local success = true
         TriggerServerEvent("echo_smugglerheist:server:attemptedHack", success)
         hackingPlane = false
     end)
@@ -232,6 +233,79 @@ function vehicle.startAttacking(pilot, plane, target)
     end)
 end
 
+--- Task that handles logic for placing bombs on plane
+---@param entity integer
+function vehicle.startBombTask(entity)
+    CreateThread(function()
+        local closestIndex = nil
+        local closestCoords = nil
+        local sleep = 1000
+        local plantingBomb = false
+        while DoesEntityExist(entity) and GlobalState["echo_smugglerheist:hacked"] and not GlobalState["echo_smugglerheist:bombed"] do
+            for i = 1, #sharedConfig.bombPlacementOffsets do
+                if not GlobalState[string.format("echo_smugglerheist:bombPlaced:%s", i)] then
+                    local myCoords = GetEntityCoords(cache.ped, false)
+                    local engineCoords = GetOffsetFromEntityInWorldCoords(entity, sharedConfig.bombPlacementOffsets[i].explode.x, sharedConfig.bombPlacementOffsets[i].explode.y, sharedConfig.bombPlacementOffsets[i].explode.z)
+
+                    if #(myCoords - engineCoords) <= 2.0 then
+                        sleep = 5
+                        closestIndex = i
+                        closestCoords = engineCoords
+                        lib.showTextUI('[E] - Plant Bomb')
+
+                        if IsControlJustPressed(0, 38) then
+                            plantingBomb = true
+                            local planted = lib.progressBar({
+                                duration = 2000,
+                                label = 'Planting Bomb',
+                                useWhileDead = false,
+                                canCancel = true,
+                                disable = {
+                                    move = true,
+                                    combat = true,
+                                    sprint = true
+                                }
+                            })
+                            
+                            if planted then
+                                local bombPlacement = sharedConfig.bombPlacementOffsets[closestIndex]
+                                local entityCoords = GetEntityCoords(entity, false)
+                                local obj = CreateObject(`prop_bomb_01`, entityCoords.x, entityCoords.y, entityCoords.z, false, false, false)
+                                
+                                AttachEntityToEntity(obj, entity, GetEntityBoneIndexByName(entity, "chassis_dummy"), bombPlacement.attach.x, bombPlacement.attach.y, bombPlacement.attach.z, 0.0, 0.0, 0.0, false, false, false, false, 2, false)
+                                
+                                if i == #sharedConfig.bombPlacementOffsets then -- Last bomb
+                                    Notify(locale('task.escape'))
+                                end
+                                
+                                Wait(5000)
+                                local explodeCoords = GetOffsetFromEntityInWorldCoords(entity, bombPlacement.explode.x, bombPlacement.explode.y, bombPlacement.explode.z) -- Update coords again (have to do this as the plane is moving)
+                                AddExplosion(explodeCoords.x, explodeCoords.y, explodeCoords.z, 2, 1.0, true, false, 0.0)
+                                DeleteEntity(obj)
+                                TriggerServerEvent("echo_smugglerheist:server:bombedPlane", i)
+                            end
+
+                            plantingBomb = false
+                        end
+                    else
+                        if closestIndex and closestCoords and #(myCoords - closestCoords) > 2.0 then
+                            closestIndex = nil
+                            closestCoords = nil
+                            sleep = 1000
+                            lib.hideTextUI()
+                        end
+                    end
+                else
+                    sleep = 1000
+                end
+            end
+            
+            Wait(sleep)
+        end
+
+    end)
+end
+
 -- Cargoplane & Pilot
 AddStateBagChangeHandler("heistCargoPlane", '', function(entity, _, value)
     local planeEntity, netId = GetEntityAndNetIdFromBagName(entity)
@@ -271,6 +345,19 @@ AddStateBagChangeHandler("cargoPlaneJet", '', function(entity, _, value)
     end
 end)
 
+
+AddStateBagChangeHandler("echo_smugglerheist:hacked", "", function(bagName, key, value, reserved, replicated)
+    if value then
+        if not vehicle.cargoNet or not NetworkDoesEntityExistWithNetworkId(vehicle.cargoNet) then return end
+        local entity = NetworkGetEntityFromNetworkId(vehicle.cargoNet)
+        if not entity or not DoesEntityExist(entity) then return end
+        
+        local pilot = GetPedInVehicleSeat(entity, -1)
+        vehicle.headToDestination(pilot, entity, config.hackedSpeed) -- Slow down the plane
+        vehicle.startBombTask(entity) -- Start thread for placing bombs
+    end
+end)
+
 ---@param netId integer
 RegisterNetEvent("echo_smugglerheist:client:createdPlane", function(netId)
     if not netId or not NetworkDoesEntityExistWithNetworkId(netId) then return end
@@ -278,18 +365,6 @@ RegisterNetEvent("echo_smugglerheist:client:createdPlane", function(netId)
     if not entity or not DoesEntityExist(entity) then return end
     vehicle.planeNet = netId
     vehicle.startHackTask(entity)
-end)
-
---- Used for slowing down the plane after it's been hacked
----@param netId integer 
-RegisterNetEvent("echo_smugglerheist:client:hackedPlane", function(netId)
-    if not netId or not NetworkDoesEntityExistWithNetworkId(netId) then return end
-    if netId ~= vehicle.cargoNet then return end
-    local entity = NetworkGetEntityFromNetworkId(netId)
-    if not entity or not DoesEntityExist(entity) then return end
-    
-    local pilot = GetPedInVehicleSeat(entity, -1)
-    vehicle.headToDestination(pilot, entity, config.hackedSpeed)
 end)
 
 ---@param crateIndex integer

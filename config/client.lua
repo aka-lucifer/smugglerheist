@@ -21,11 +21,5 @@ return {
     },
     flatRotation = vec3(2.036057, -0.087843, -104.172180),
     cargoRearDoorId = 2, -- The hatch door ID of the cargoplane
-    cargoCockpitDoorId = 4, -- The front cockpit part door ID of the cargoplane
-    crateOffsets = { -- Offsets where to spawn the crates inside the cargoplane
-        vec3(-1.7, 25.7, 0.0), -- FL
-        vec3(1.6, 26.0, 0.0), -- FR
-        vec3(-1.9, 2.4, 0.0), -- RL
-        vec3(1.9, 2.5, 0.0) -- RR
-    },
+    cargoCockpitDoorId = 4 -- The front cockpit part door ID of the cargoplane
 }

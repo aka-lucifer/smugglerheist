@@ -19,4 +19,7 @@ return {
     planeSeats = 4, -- How many seats the plane has, edit as needed
     jetCount = 2, -- How many jets to dispatch when you trigger them
     jetSpawnOffset = 300.0, -- What random offset to use when spawning jets
+    crateItems = {
+        { item = "water", amount = 3 }
+    }
 }

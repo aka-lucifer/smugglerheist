@@ -8,11 +8,13 @@ local vehicle = {
     warningsRecieved = 0,
     dispatchedJets = false,
     spawnedJets = {},
-    openingCrate = false
+    openingCrate = false,
+    cratesOpened = 0
 }
 
 GlobalState["echo_smugglerheist:hackingSystem"] = false
 GlobalState["echo_smugglerheist:hacked"] = false
+GlobalState["echo_smugglerheist:bombed"] = false
 
 --- Returns a random value between negative and positive of the provided int
 ---@param randomInt integer Field to get a random value from 
@@ -35,6 +37,10 @@ function vehicle.init()
         GlobalState["echo_smugglerheist:hackingSystem"] = true
         return true
     end)
+
+    for i = 1, #sharedConfig.bombPlacementOffsets do
+        GlobalState[string.format("echo_smugglerheist:bombPlaced:%s", i)] = false
+    end
 end
 
 ---@return boolean
@@ -262,13 +268,33 @@ RegisterNetEvent("echo_smugglerheist:server:attemptedHack", function(success)
         GlobalState["echo_smugglerheist:hacked"] = true
         TriggerClientEvent("echo_smugglerheist:client:hackedPlane", -1, NetworkGetNetworkIdFromEntity(vehicle.cargoHandle))
         TriggerClientEvent("echo_smugglerheist:client:sentNotify", src, locale('task.plant_bombs'))
-        -- start bomb placement thread
+    end
+end)
+
+---@param bombIndex integer
+RegisterNetEvent("echo_smugglerheist:server:bombedPlane", function(bombIndex)
+    if not bombIndex or type(bombIndex) ~= "number" then return end
+    if not GlobalState["echo_smugglerheist:started"] then return end
+    if not GlobalState["echo_smugglerheist:hacked"] then return end
+    if GlobalState[string.format("echo_smugglerheist:bombPlaced:%s", bombIndex)] then return end
+    
+    local src = source --[[@as number]]
+    local player = exports.qbx_core:GetPlayer(source)
+    if not player then return end
+
+    GlobalState[string.format("echo_smugglerheist:bombPlaced:%s", bombIndex)] = true
+    if bombIndex == #sharedConfig.bombPlacementOffsets then -- Bombed all
+        GlobalState["echo_smugglerheist:bombed"] = true
     end
 end)
 
 ---@param crateIndex integer
 RegisterNetEvent("echo_smugglerheist:server:openCrate", function(crateIndex)
     if not crateIndex or type(crateIndex) ~= "number" then return end
+    if not GlobalState["echo_smugglerheist:started"] then return end
+    if not GlobalState["echo_smugglerheist:hacked"] then return end
+
+    local src = source --[[@as number]]
     local player = exports.qbx_core:GetPlayer(source)
     if not player then return end
 
@@ -276,9 +302,18 @@ RegisterNetEvent("echo_smugglerheist:server:openCrate", function(crateIndex)
     if vehicle.openingCrate then return end
     vehicle.openingCrate = true
 
-    player.Functions.AddMoney("cash", math.random(1000, 2000), "echo_smugglerheist - open crate") -- replace with item
+    for i = 1, #config.crateItems do
+        exports.ox_inventory:AddItem(src, config.crateItems[i].item, config.crateItems[i].amount)
+    end
+
     TriggerClientEvent("echo_smugglerheist:client:openCrate", -1, crateIndex)
     vehicle.openingCrate = false
+    vehicle.cratesOpened += 1
+
+    if vehicle.cratesOpened == #sharedConfig.crateOffsets then -- opened all crates
+        print("opened all crates")
+        -- DO DROP OFF LOGIC HERE
+    end
 end)
 
 return vehicle
