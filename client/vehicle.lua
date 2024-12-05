@@ -147,22 +147,30 @@ function vehicle.startHackTask(entity)
             local sleep = 5000 -- Can have it sleep 5 seconds because entity should well exist by then and you have to travel to plane anyway
             if vehicle.cargoNet and NetworkDoesEntityExistWithNetworkId(vehicle.cargoNet) then
                 sleep = 1000
-                local missionCoords = GetEntityCoords(entity, false)
-                local cargoPlane = NetworkGetEntityFromNetworkId(vehicle.cargoNet)
-                local cargoCoords = GetEntityCoords(cargoPlane, false)
-                local dist = #(missionCoords - cargoCoords)
-                if dist <= sharedConfig.hackDistance then
-                    if not GlobalState["echo_smugglerheist:hackingSystem"] then
-                        sleep = 5
-                        if not showingHack then
-                            showingHack = true
-                            lib.showTextUI('[E] - Hack Plane')
-                        end
+                if cache.vehicle and cache.vehicle == entity then
+                    local missionCoords = GetEntityCoords(entity, false)
+                    local cargoPlane = NetworkGetEntityFromNetworkId(vehicle.cargoNet)
+                    local cargoCoords = GetEntityCoords(cargoPlane, false)
+                    local dist = #(missionCoords - cargoCoords)
+                    if dist <= sharedConfig.hackDistance then
+                        if not GlobalState["echo_smugglerheist:hackingSystem"] then
+                            sleep = 5
+                            if not showingHack then
+                                showingHack = true
+                                lib.showTextUI('[E] - Hack Plane')
+                            end
 
-                        if IsControlJustPressed(0, 38) then
-                            local started, error = lib.callback.await("echo_smugglerheist:hackPlane", false)
-                            if not started then Notify(error) end
-                            vehicle.hackPlane()
+                            if IsControlJustPressed(0, 38) then
+                                local started, error = lib.callback.await("echo_smugglerheist:hackPlane", false)
+                                if not started then Notify(error) end
+                                vehicle.hackPlane()
+                            end
+                        else
+                            sleep = 1000
+                            if showingHack then
+                                showingHack = false
+                                lib.hideTextUI()
+                            end
                         end
                     else
                         sleep = 1000
@@ -170,17 +178,11 @@ function vehicle.startHackTask(entity)
                             showingHack = false
                             lib.hideTextUI()
                         end
-                    end
-                else
-                    sleep = 1000
-                    if showingHack then
-                        showingHack = false
-                        lib.hideTextUI()
-                    end
 
-                    if hackingPlane then
-                        hackingPlane = false
-                        exports.fallouthacking:cancel()
+                        if hackingPlane then
+                            hackingPlane = false
+                            exports.fallouthacking:cancel()
+                        end
                     end
                 end
             else
