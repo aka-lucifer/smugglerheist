@@ -184,6 +184,12 @@ function vehicle.startDistTask()
 
     CreateThread(function()
         while (vehicle.cargoExists() and vehicle.planeExists()) and not vehicle.dispatchedJets do
+            if GlobalState["echo_smugglerheist:hacked"] then
+                lib.print.info("Disabling jet dispatcher task")
+                vehicle.deleteJets() -- Delete jets if they exist
+                return -- Destroy the thread
+            end
+
             lib.print.info("Running interval on jet task | Warnings: " .. vehicle.warningsRecieved)
 
             local cargoCoords = GetEntityCoords(vehicle.cargoHandle, false)
@@ -255,7 +261,7 @@ RegisterNetEvent("echo_smugglerheist:server:attemptedHack", function(success)
     if success then
         GlobalState["echo_smugglerheist:hacked"] = true
         TriggerClientEvent("echo_smugglerheist:client:hackedPlane", -1, NetworkGetNetworkIdFromEntity(vehicle.cargoHandle))
-        -- disable jet dispatch
+        TriggerClientEvent("echo_smugglerheist:client:sentNotify", src, locale('task.plant_bombs'))
         -- start bomb placement thread
     end
 end)
