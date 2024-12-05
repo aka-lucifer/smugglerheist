@@ -4,7 +4,6 @@ local mission = {}
 
 GlobalState["echo_smugglerheist:started"] = false
 GlobalState["echo_smugglerheist:cooldown"] = nil
-GlobalState["echo_smugglerheist:hackingSystem"] = false
 
 --- Start the mission on the creator
 ---@param source integer

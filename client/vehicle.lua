@@ -1,12 +1,16 @@
 local config = require 'config.client'
+local sharedConfig = require 'config.shared'
 local metersPerSecondConversion = 0.44704
+local showingHack = false
+local hackingPlane = false
 local vehicle = {
+    cargoNet = nil,
     planeNet = nil,
     spawnedCrates = {}
 }
 
 function vehicle.attachCrates(entity)
-    if not vehicle.planeNet or NetToVeh(vehicle.planeNet) ~= entity then return end 
+    if not vehicle.cargoNet or NetToVeh(vehicle.cargoNet) ~= entity then return end 
 
     lib.requestModel(`ex_prop_crate_closed_mw`)
     for i = 1, #config.crateOffsets do
@@ -120,6 +124,78 @@ function vehicle.startUp(pilot, vehicle)
     SetVehicleEngineOn(vehicle, true, true, false) -- Force engine on
 end
 
+--- Start hacking the plane
+function vehicle.hackPlane()
+    if showingHack then
+        showingHack = false
+        lib.hideTextUI()
+    end
+
+    CreateThread(function()
+        hackingPlane = true
+        local success = exports.fallouthacking:start(math.random(6, 8), 5)
+        TriggerServerEvent("echo_smugglerheist:server:attemptedHack", success)
+        hackingPlane = false
+    end)
+end
+
+---@param entity integer The mission plane entity
+function vehicle.startHackTask(entity)
+    CreateThread(function()
+        while DoesEntityExist(entity) and not GlobalState["echo_smugglerheist:hacked"] do
+            local sleep = 5000 -- Can have it sleep 5 seconds because entity should well exist by then and you have to travel to plane anyway
+            if vehicle.cargoNet and NetworkDoesEntityExistWithNetworkId(vehicle.cargoNet) then
+                sleep = 1000
+                local missionCoords = GetEntityCoords(entity, false)
+                local cargoPlane = NetworkGetEntityFromNetworkId(vehicle.cargoNet)
+                local cargoCoords = GetEntityCoords(cargoPlane, false)
+                local dist = #(missionCoords - cargoCoords)
+                if dist <= sharedConfig.hackDistance then
+                    if not GlobalState["echo_smugglerheist:hackingSystem"] then
+                        sleep = 5
+                        if not showingHack then
+                            showingHack = true
+                            lib.showTextUI('[E] - Hack Plane')
+                        end
+
+                        if IsControlJustPressed(0, 38) then
+                            local started, error = lib.callback.await("echo_smugglerheist:hackPlane", false)
+                            if not started then Notify(error) end
+                            vehicle.hackPlane()
+                        end
+                    else
+                        sleep = 1000
+                        if showingHack then
+                            showingHack = false
+                            lib.hideTextUI()
+                        end
+                    end
+                else
+                    sleep = 1000
+                    if showingHack then
+                        showingHack = false
+                        lib.hideTextUI()
+                    end
+
+                    if hackingPlane then
+                        hackingPlane = false
+                        exports.fallouthacking:cancel()
+                    end
+                end
+            else
+                sleep = 5000
+            end
+
+            Wait(sleep)
+        end
+
+        if showingHack then -- if for some reason hack prompt is showing
+            showingHack = false
+            lib.hideTextUI()
+        end
+    end)
+end
+
 --- Make the jet attack a specified target
 ---@param pilot integer Ped pilot handle
 ---@param plane integer Jet vehicle handle
@@ -161,8 +237,8 @@ AddStateBagChangeHandler("heistCargoPlane", '', function(entity, _, value)
         if not NetworkDoesEntityExistWithNetworkId(value.pilotNet) then return end
         local pilotEntity = NetworkGetEntityFromNetworkId(value.pilotNet)
 
-        if not planeEntity or not pilotEntity then return error(err) end
-        vehicle.planeNet = netId
+        if not planeEntity or not pilotEntity then return error("Unable to get cargoplane entity from netId") end
+        vehicle.cargoNet = netId
         lib.print.info("Found entity handle from netId")
 
         vehicle.makeBlip(planeEntity, config.blip.cargoplane)
@@ -182,7 +258,7 @@ AddStateBagChangeHandler("cargoPlaneJet", '', function(entity, _, value)
         local pilotEntity = NetworkGetEntityFromNetworkId(value.pilotNet)
         local targetEntity = NetworkGetEntityFromNetworkId(value.targetNet)
 
-        if not planeEntity or not pilotEntity or not targetEntity then return error(err) end
+        if not planeEntity or not pilotEntity or not targetEntity then return error("Unable to get jet entity from netId") end
         lib.print.info("Found entity handle from netId")
     
         vehicle.makeBlip(planeEntity, config.blip.jet) -- Register jet blip
@@ -192,14 +268,13 @@ AddStateBagChangeHandler("cargoPlaneJet", '', function(entity, _, value)
     end
 end)
 
-RegisterNetEvent("echo_smugglerheist:client:dismissJets", function(netId)
+---@param netId integer
+RegisterNetEvent("echo_smugglerheist:client:createdPlane", function(netId)
     if not netId or not NetworkDoesEntityExistWithNetworkId(netId) then return end
     local entity = NetworkGetEntityFromNetworkId(netId)
     if not entity or not DoesEntityExist(entity) then return end
-
-    local pilot = GetPedInVehicleSeat(entity, -1)
-    print("dismiss jet", pilot, entity)
-    TaskVehicleDriveWander(pilot, entity, 30.0, 786603)
+    vehicle.planeNet = netId
+    vehicle.startHackTask(entity)
 end)
 
 ---@param crateIndex integer

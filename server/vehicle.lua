@@ -1,4 +1,5 @@
 local config = require "config.server"
+local sharedConfig = require "config.shared"
 
 local vehicle = {
     cargoHandle = nil,
@@ -10,11 +11,30 @@ local vehicle = {
     openingCrate = false
 }
 
+GlobalState["echo_smugglerheist:hackingSystem"] = false
+GlobalState["echo_smugglerheist:hacked"] = false
+
 --- Returns a random value between negative and positive of the provided int
 ---@param randomInt integer Field to get a random value from 
 ---@return integer
 local function randomOffset(randomInt)
     return math.random(math.abs(randomInt)*-1, randomInt)
+end
+
+--- Registers the vehicle server callbacks
+function vehicle.init()
+    lib.callback.register('echo_smugglerheist:hackPlane', function(source)
+        if not GlobalState["echo_smugglerheist:started"] then return false, locale("error.mission_not_active") end
+        if GlobalState["echo_smugglerheist:hacked"] then return false, locale("error.already_hacked") end
+        if GlobalState["echo_smugglerheist:hackingSystem"] then return false, locale("error.being_hacked") end
+
+        local src = source --[[@as number]]
+        local player = exports.qbx_core:GetPlayer(src)
+        if not player then return false, locale("error.no_player") end
+
+        GlobalState["echo_smugglerheist:hackingSystem"] = true
+        return true
+    end)
 end
 
 ---@return boolean
@@ -213,6 +233,33 @@ function vehicle.startDistTask()
     end)
 end
 
+---@param success boolean Was the hack successful
+RegisterNetEvent("echo_smugglerheist:server:attemptedHack", function(success)
+    if not GlobalState["echo_smugglerheist:started"] then return end
+    if GlobalState["echo_smugglerheist:hacked"] then return end
+    if not GlobalState["echo_smugglerheist:hackingSystem"] then return end
+
+    local src = source --[[@as number]]
+    local player = exports.qbx_core:GetPlayer(src)
+    if not player then return end
+
+    local playerPed = GetPlayerPed(src)
+    local playerVeh = GetVehiclePedIsIn(playerPed, false)
+    if playerVeh ~= vehicle.planeHandle then return end
+    
+    local vehCoords = GetEntityCoords(playerVeh, false)
+    local cargoCoords = GetEntityCoords(vehicle.cargoHandle, false)
+    if #(vehCoords - cargoCoords) > sharedConfig.hackDistance then return end
+
+    GlobalState["echo_smugglerheist:hackingSystem"] = false
+    if success then
+        GlobalState["echo_smugglerheist:hacked"] = true
+        -- slow down plane
+        -- disable jet dispatch
+        -- start bomb placement thread
+    end
+end)
+
 ---@param crateIndex integer
 RegisterNetEvent("echo_smugglerheist:server:openCrate", function(crateIndex)
     if not crateIndex or type(crateIndex) ~= "number" then return end
@@ -227,7 +274,5 @@ RegisterNetEvent("echo_smugglerheist:server:openCrate", function(crateIndex)
     TriggerClientEvent("echo_smugglerheist:client:openCrate", -1, crateIndex)
     vehicle.openingCrate = false
 end)
-
-print("height", -15.0 < -20.0)
 
 return vehicle

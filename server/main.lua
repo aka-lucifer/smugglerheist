@@ -18,6 +18,7 @@ end)
 
 CreateThread(function()
     mission.init()
+    vehicle.init()
 end)
 
 RegisterCommand("plane", function(source, args, raw)

@@ -7,6 +7,9 @@
         "mission_active": "~r~Mission already active!",
         "mission_cooldown": "~r~Mission not available right now!",
         "not_enough_police": "~r~Not enough government available!",
-        "cant_afford": "~r~Not enough funds!"
+        "cant_afford": "~r~Not enough funds!",
+        "mission_not_active": "~r~Mission not active!",
+        "already_hacked": "~r~Plane already hacked!",
+        "being_hacked": "~r~Someone already hacking plane!"
     }
 }
