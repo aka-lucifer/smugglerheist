@@ -21,8 +21,8 @@ AddEventHandler('gameEventTriggered', function (name, args)
         -- lib.print.info(
         --     string.format(
         --         "Plane Net/Handle - %s/%s | Entity Damage - %s | Destroyed - %s | Weapon - %s | Weapon Hash - %s",
-        --         vehicle.planeNet,
-        --         NetworkGetEntityFromNetworkId(vehicle.planeNet),
+        --         vehicle.cargoNet,
+        --         NetworkGetEntityFromNetworkId(vehicle.cargoNet),
         --         tostring(entity),
         --         tostring(isDestroyed),
         --         tostring(weapon),
@@ -32,7 +32,7 @@ AddEventHandler('gameEventTriggered', function (name, args)
         if not isDestroyed then return end
         
         if weapon ~= `WEAPON_EXPLOSION` then return end
-        if entity ~= NetToVeh(vehicle.planeNet) then return end
+        if entity ~= NetToVeh(vehicle.cargoNet) then return end
 
         lib.print.info("Cargoplane Crashed With Explosion")
         
