@@ -4,7 +4,8 @@ return {
     paymentType = "cash", -- How players will pay for the heist (supports cash or bank)
     missionPlane = {
         coords = vec4(1718.47, 3254.59, 41.32, 104.0),
-        model = `vestra`
+        model = `vestra`,
+        taskInterval = 1000 -- How often to check if the mission plane isn't destroyed
     },
     cargoSpawn = vec4(-309.05, 7903.28, 600.78, 170.4), -- Where the cargoplane spawns
     distanceThreshold = 150.0, -- How close the plane has to be to the cargoplane to dispatch jets

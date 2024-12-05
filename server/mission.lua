@@ -4,7 +4,6 @@ local mission = {}
 
 GlobalState["echo_smugglerheist:started"] = false
 GlobalState["echo_smugglerheist:cooldown"] = nil
-GlobalState["echo_smugglerheist:host"] = false
 GlobalState["echo_smugglerheist:hackingSystem"] = false
 
 --- Start the mission on the creator
@@ -12,7 +11,6 @@ GlobalState["echo_smugglerheist:hackingSystem"] = false
 function mission.start(source)
     local src = source --[[@as number]]
     GlobalState["echo_smugglerheist:started"] = true
-    GlobalState["echo_smugglerheist:host"] = src
     vehicle.createCargo()
     vehicle.createPlane(src)
     vehicle.startDistTask()

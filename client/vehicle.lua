@@ -127,19 +127,6 @@ end
 function vehicle.startAttacking(pilot, plane, target)
     CreateThread(function()
         while DoesEntityExist(plane) and DoesEntityExist(target) do
-
-            -- NEED TO CONVERT TO SERVER LOGIC
-            print("destroyed", IsEntityDead(target), GetVehicleEngineHealth(target), GetVehicleEngineHealth(target))
-            -- if IsEntityDead(target) then -- If your plane is destroyed make them wander away
-            --     RemoveBlip(plane)
-            --     TaskVehicleDriveWander(pilot, plane, 30.0, 786603)
-            --     SetTimeout(30000, function()
-            --         DeleteEntity(plane)
-            --     end)
-            --     return
-            -- end
-            -- ]] NEED TO CONVERT TO SERVER LOGIC
-
             local targetPos = GetEntityCoords(target, false)
 
             TaskPlaneMission(
@@ -203,6 +190,16 @@ AddStateBagChangeHandler("cargoPlaneJet", '', function(entity, _, value)
         SetVehicleForwardSpeed(planeEntity, 100.0) -- Stops the freefall and makes it fly from current position
         vehicle.startAttacking(pilotEntity, planeEntity, targetEntity) -- Make the jet attack the mission plane
     end
+end)
+
+RegisterNetEvent("echo_smugglerheist:client:dismissJets", function(netId)
+    if not netId or not NetworkDoesEntityExistWithNetworkId(netId) then return end
+    local entity = NetworkGetEntityFromNetworkId(netId)
+    if not entity or not DoesEntityExist(entity) then return end
+
+    local pilot = GetPedInVehicleSeat(entity, -1)
+    print("dismiss jet", pilot, entity)
+    TaskVehicleDriveWander(pilot, entity, 30.0, 786603)
 end)
 
 ---@param crateIndex integer

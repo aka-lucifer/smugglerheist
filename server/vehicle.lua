@@ -48,15 +48,6 @@ function vehicle.deleteCargo()
         DeleteEntity(vehicle.planeHandle) -- Delete entity
         vehicle.planeHandle = nil -- Set plane variable to null
     end
-
-    -- Delete jets if they still exist
-    for _, jet in pairs(vehicle.spawnedJets) do
-        if DoesEntityExist(jet) then
-            DeleteEntity(jet)
-        end
-    end
-
-    vehicle.spawnedJets = {}
 end
 
 --- Create cargoplane
@@ -103,9 +94,37 @@ function vehicle.createPlane(source)
     vehicle.planeHandle = entity
 end
 
+-- Handle deleting jets if mission plane is destroyed
+function vehicle.deleteJets()
+    for _, jet in pairs(vehicle.spawnedJets) do
+        if DoesEntityExist(jet) then
+            DeleteEntity(jet)
+        end
+    end
+    
+    vehicle.spawnedJets = {}
+end
+
+-- Task for checking if mission plane has been destroyed by jets
+function vehicle.startDestroyedTask()
+    if not vehicle.planeExists() then return end
+    CreateThread(function()
+        while vehicle.planeHandle and DoesEntityExist(vehicle.planeHandle) and GetVehicleEngineHealth(vehicle.planeHandle) > 0 do
+            lib.print.info("Running mission plane destroyed detection task")
+            Wait(config.missionPlane.taskInterval)
+        end
+
+        if vehicle.planeHandle and DoesEntityExist(vehicle.planeHandle) and GetVehicleEngineHealth(vehicle.planeHandle) <= 0.0 then
+            lib.print.info("Mission plane destroyed, delete jets")
+            vehicle.deleteJets()
+        end
+    end)
+end
+
 --- Create jets and send to client for handling attack logic
 function vehicle.dispatchJets()
     if not vehicle.cargoExists() then return end
+    if not vehicle.planeExists() then return end
     local cargoPlaneHeading = GetEntityHeading(vehicle.cargoHandle)
 
     for i = 1, config.jetCount do
@@ -134,6 +153,8 @@ function vehicle.dispatchJets()
 
         table.insert(vehicle.spawnedJets, entity)
     end
+
+    vehicle.startDestroyedTask()
 end
 
 --- Creates the task of handling if you"re too close or too high above the cargoplane
