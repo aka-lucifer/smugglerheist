@@ -6,7 +6,7 @@ return {
     },
     cargoDestination = vec3(-1325.82, -5204.93, 600.0), -- Where the cargoplane will fly to, if it reaches here mission will cancel
     travelSpeed = 100.0, -- The speed the cargoplane will travel at in MPH during its casual flight
-    hackedSpeed = 50.0, -- The speed the cargoplane will travel at in MPH once hacked
+    hackedSpeed = 30.0, -- The speed the cargoplane will travel at in MPH once hacked
     blip = {
         cargoplane = {
             sprite = 307,
