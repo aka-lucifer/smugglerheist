@@ -8,10 +8,10 @@ return {
         taskInterval = 1000 -- How often to check if the mission plane isn't destroyed
     },
     cargoSpawn = vec4(-309.05, 7903.28, 600.78, 170.4), -- Where the cargoplane spawns
-    distanceThreshold = 150.0, -- How close the plane has to be to the cargoplane to dispatch jets
+    distanceThreshold = 100.0, -- How close the plane has to be to the cargoplane to dispatch jets
     height = {
-        distance = 200.0, -- How close you have to be in order for height to be detected
-        threshold = 50.0 -- How high up alongside the distance you have to be, to be detected
+        distance = 170.0, -- How close you have to be in order for height to be detected
+        threshold = -20.0 -- How high up alongside the distance you have to be, to be detected
     },
     jetTaskInterval = 2000, -- Don't lower too much or it will lag your server
     warningCount = 3, -- How many warnings to give them before jets are dispatched

@@ -82,7 +82,7 @@ function vehicle.createPlane(source)
         exports.qbx_core:DeleteVehicle(currentVehicle)
     end
 
-    local _, entity = qbx.spawnVehicle({
+    local netId, entity = qbx.spawnVehicle({
         model = config.missionPlane.model,
         spawnSource = config.missionPlane.coords,
     })
@@ -92,6 +92,7 @@ function vehicle.createPlane(source)
     
 
     vehicle.planeHandle = entity
+    TriggerClientEvent("echo_smugglerheist:client:createdPlane", -1, netId)
 end
 
 -- Handle deleting jets if mission plane is destroyed
@@ -169,9 +170,10 @@ function vehicle.startDistTask()
             local planeCoords = GetEntityCoords(vehicle.planeHandle, false)
             local dist = #(cargoCoords - planeCoords)
             local heightDifference = planeCoords.z - cargoCoords.z
+            -- lib.print.info(("Distance: %s | Height: %s"):format(dist, heightDifference))
 
             if (dist < config.distanceThreshold) or (dist < config.height.distance and heightDifference > config.height.threshold) then
-                lib.print.warn("TOO CLOSE OR HIGH")
+                -- lib.print.warn("TOO CLOSE OR HIGH")
                 vehicle.warningsRecieved += 1
                 if vehicle.warningsRecieved >= config.warningCount then
                     lib.print.info("Too many warnings recieved, dispatching jets")
@@ -225,5 +227,7 @@ RegisterNetEvent("echo_smugglerheist:server:openCrate", function(crateIndex)
     TriggerClientEvent("echo_smugglerheist:client:openCrate", -1, crateIndex)
     vehicle.openingCrate = false
 end)
+
+print("height", -15.0 < -20.0)
 
 return vehicle
