@@ -32,7 +32,7 @@ function vehicle.attachCrates(entity)
             icon = "fa-solid fa-box-open",
             distance = 2.0,
             canInteract = function()
-                return MissionActive
+                return GlobalState["echo_smugglerheist:started"] and LoggedIn
             end,
             onSelect = function(data)
                 if data.entity and DoesEntityExist(data.entity) then

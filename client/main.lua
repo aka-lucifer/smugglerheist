@@ -5,7 +5,6 @@ local mission = require "client.mission"
 local vehicle = require "client.vehicle"
 
 LoggedIn = true -- Set to false on prod
-MissionActive = false
 
 AddEventHandler("onResourceStop", function(res)
     if GetCurrentResourceName() == res then
@@ -19,21 +18,21 @@ AddEventHandler('gameEventTriggered', function (name, args)
         local isDestroyed = args[6] == 1
         local weapon = args[7]
 
-        print(
-            string.format(
-                "Plane Net/Handle - %s/%s | Entity Damage - %s | Destroyed - %s | Weapon - %s | Weapon Hash - %s",
-                vehicle.planeNet,
-                NetworkGetEntityFromNetworkId(vehicle.planeNet),
-                tostring(entity),
-                tostring(isDestroyed),
-                tostring(weapon),
-                `WEAPON_EXPLOSION`
-            )
-        )
-        if entity ~= NetToVeh(vehicle.planeNet) then return end
+        -- lib.print.info(
+        --     string.format(
+        --         "Plane Net/Handle - %s/%s | Entity Damage - %s | Destroyed - %s | Weapon - %s | Weapon Hash - %s",
+        --         vehicle.planeNet,
+        --         NetworkGetEntityFromNetworkId(vehicle.planeNet),
+        --         tostring(entity),
+        --         tostring(isDestroyed),
+        --         tostring(weapon),
+        --         `WEAPON_EXPLOSION`
+        --     )
+        -- )
         if not isDestroyed then return end
         
         if weapon ~= `WEAPON_EXPLOSION` then return end
+        if entity ~= NetToVeh(vehicle.planeNet) then return end
 
         lib.print.info("Cargoplane Crashed With Explosion")
         
@@ -44,16 +43,12 @@ AddEventHandler('gameEventTriggered', function (name, args)
         -- NOT IDEAl, SOMETIMES PLACES INTO WALLS, NEED TO FIND A BETTER METHOD FOR THIS
         SetVehicleOnGroundProperly(entity)
         -- SetEntityRotation(entity, config.flatRotation.x, config.flatRotation.y, config.flatRotation.z, 2, false)
-        -- NOT IDEAl, SOMETIMES PLACES INTO WALLS, NEED TO FIND A BETTER METHOD FOR THIS
+        -- NOT IDEAL, SOMETIMES PLACES INTO WALLS, NEED TO FIND A BETTER METHOD FOR THIS
 
         SetVehicleDoorBroken(entity, config.cargoRearDoorId, false) -- Detach the rear door incase it doesn't come off when plane is destroyed
         SetVehicleDoorBroken(entity, config.cargoCockpitDoorId, false) -- Detach the front cockpit door incase it doesn't come off when plane is destroyed
         vehicle.attachCrates(entity)
     end
-end)
-
-RegisterNetEvent("echo_smugglerheist:client:startedMission", function()
-    MissionActive = true
 end)
 
 RegisterNetEvent('QBCore:Client:OnPlayerLoaded', function()

@@ -18,7 +18,7 @@ function mission.setup()
                 icon = "fa-solid fa-clipboard",
                 distance = 2.0,
                 canInteract = function()
-                    return not MissionActive
+                    return not GlobalState["echo_smugglerheist:started"] and LoggedIn
                 end,
                 onSelect = function()
                     local started, error = lib.callback.await("echo_smugglerheist:requestMission", false)

@@ -1,22 +1,21 @@
 local config = require "config.server"
 local vehicle = require "server.vehicle"
-local mission = {
-    cooldown = nil,
-    started = false,
-    host = nil,
-    hackingSystem = false,
-}
+local mission = {}
+
+GlobalState["echo_smugglerheist:started"] = false
+GlobalState["echo_smugglerheist:cooldown"] = nil
+GlobalState["echo_smugglerheist:host"] = false
+GlobalState["echo_smugglerheist:hackingSystem"] = false
 
 --- Start the mission on the creator
 ---@param source integer
 function mission.start(source)
     local src = source --[[@as number]]
-    mission.host = src
-    mission.started = true
+    GlobalState["echo_smugglerheist:started"] = true
+    GlobalState["echo_smugglerheist:host"] = src
     vehicle.createCargo()
     vehicle.createPlane(src)
     vehicle.startDistTask()
-    TriggerClientEvent("echo_smugglerheist:client:startedMission", -1)
     TriggerClientEvent("echo_smugglerheist:client:sentNotify", src, locale('task.mission_start'))
 end
 
@@ -27,9 +26,9 @@ function mission.init()
         local player = exports.qbx_core:GetPlayer(src)
         if not player then return false, locale("error.no_player") end
 
-        if mission.started then return false, locale("error.mission_active") end
+        if GlobalState["echo_smugglerheist:started"] then return false, locale("error.mission_active") end
 
-        if mission.cooldown and os.time() < mission.cooldown then return false, locale("error.mission_cooldown") end
+        if GlobalState["echo_smugglerheist:cooldown"] and os.time() < GlobalState["echo_smugglerheist:cooldown"] then return false, locale("error.mission_cooldown") end
 
         local count, _ = exports.qbx_core:GetDutyCountType('leo')
         if count < config.requiredPolice then return false, locale("error.not_enough_police") end
