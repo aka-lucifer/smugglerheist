@@ -254,7 +254,7 @@ RegisterNetEvent("echo_smugglerheist:server:attemptedHack", function(success)
     GlobalState["echo_smugglerheist:hackingSystem"] = false
     if success then
         GlobalState["echo_smugglerheist:hacked"] = true
-        -- slow down plane
+        TriggerClientEvent("echo_smugglerheist:client:hackedPlane", -1, NetworkGetNetworkIdFromEntity(vehicle.cargoHandle))
         -- disable jet dispatch
         -- start bomb placement thread
     end

@@ -77,7 +77,8 @@ end
 --- Applies to logic to make the plane head to the deliver cargo coords
 ---@param driver integer
 ---@param planeEntity integer
-function vehicle.headToDestination(driver, planeEntity)
+---@param speed number
+function vehicle.headToDestination(driver, planeEntity, speed)
     if not driver or not DoesEntityExist(driver) then return end
 
     if not planeEntity or not DoesEntityExist(planeEntity) then return end
@@ -91,7 +92,7 @@ function vehicle.headToDestination(driver, planeEntity)
         config.cargoDestination.y,
         config.cargoDestination.z,
         4,
-        vehicle.convertSpeed(config.travelSpeed), -- Speed (meters per second)
+        vehicle.convertSpeed(speed), -- Speed (meters per second)
         0.0,
         150.0,
         600.0, -- Max height
@@ -99,7 +100,7 @@ function vehicle.headToDestination(driver, planeEntity)
         1
     )
 
-    SetVehicleForwardSpeed(planeEntity, vehicle.convertSpeed(config.travelSpeed)) -- Stops the freefall and makes it fly from current position
+    SetVehicleForwardSpeed(planeEntity, vehicle.convertSpeed(speed)) -- Stops the freefall and makes it fly from current position
 end
 
 --- Make a blip for the passed entity with the provided fields
@@ -243,7 +244,7 @@ AddStateBagChangeHandler("heistCargoPlane", '', function(entity, _, value)
 
         vehicle.makeBlip(planeEntity, config.blip.cargoplane)
         vehicle.startUp(pilotEntity, planeEntity)
-        vehicle.headToDestination(pilotEntity, planeEntity)
+        vehicle.headToDestination(pilotEntity, planeEntity, config.travelSpeed)
     end
 end)
 
@@ -275,6 +276,18 @@ RegisterNetEvent("echo_smugglerheist:client:createdPlane", function(netId)
     if not entity or not DoesEntityExist(entity) then return end
     vehicle.planeNet = netId
     vehicle.startHackTask(entity)
+end)
+
+--- Used for slowing down the plane after it's been hacked
+---@param netId integer 
+RegisterNetEvent("echo_smugglerheist:client:hackedPlane", function(netId)
+    if not netId or not NetworkDoesEntityExistWithNetworkId(netId) then return end
+    if netId ~= vehicle.cargoNet then return end
+    local entity = NetworkGetEntityFromNetworkId(netId)
+    if not entity or not DoesEntityExist(entity) then return end
+    
+    local pilot = GetPedInVehicleSeat(entity, -1)
+    vehicle.headToDestination(pilot, entity, config.hackedSpeed)
 end)
 
 ---@param crateIndex integer
