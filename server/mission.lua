@@ -24,7 +24,8 @@ function mission.finish()
     GlobalState["echo_smugglerheist:started"] = false
     GlobalState["echo_smugglerheist:cooldown"] = os.time() + 1800 -- 30 minute cooldown
     vehicle.finish()
-    vehicle.deleteCargo()
+    mission.openingCrate = false
+    mission.itemsGiven = {}
 end
 
 --- Registers the mission server callbacks

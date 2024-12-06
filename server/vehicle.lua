@@ -44,6 +44,10 @@ end
 
 -- Reset the statebags for the heist
 function vehicle.finish()
+    vehicle.deleteCargo()
+    vehicle.deleteJets()
+    vehicle.warningsRecieved = 0
+    vehicle.dispatchedJets = false
     GlobalState["echo_smugglerheist:hackingSystem"] = false
     GlobalState["echo_smugglerheist:hacked"] = false
     GlobalState["echo_smugglerheist:bombed"] = false

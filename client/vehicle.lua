@@ -309,6 +309,14 @@ function vehicle.startBombTask(entity)
     end)
 end
 
+-- Clean up memory
+function vehicle.finish()
+    vehicle.deleteCrates()
+    vehicle.cargoNet = nil
+    vehicle.planeNet = nil
+    vehicle.spawnedCrates = {}
+end
+
 -- Cargoplane & Pilot
 AddStateBagChangeHandler("heistCargoPlane", '', function(entity, _, value)
     local planeEntity, netId = GetEntityAndNetIdFromBagName(entity)

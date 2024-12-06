@@ -64,5 +64,6 @@ AddStateBagChangeHandler("echo_smugglerheist:started", "", function(bagName, key
     if not value then
         print("heist finished, clear drop off target")
         mission.finish()
+        vehicle.finish()
     end
 end)
