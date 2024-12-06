@@ -314,7 +314,6 @@ function vehicle.finish()
     vehicle.deleteCrates()
     vehicle.cargoNet = nil
     vehicle.planeNet = nil
-    vehicle.spawnedCrates = {}
 end
 
 -- Cargoplane & Pilot
