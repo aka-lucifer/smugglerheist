@@ -1,10 +1,11 @@
 lib.locale()
 
 local config = require "config.client"
+local sharedConfig = require "config.shared"
 local mission = require "client.mission"
 local vehicle = require "client.vehicle"
 
-LoggedIn = true -- Set to false on prod
+LoggedIn = false -- Set to false on prod
 
 AddEventHandler("onResourceStop", function(res)
     if GetCurrentResourceName() == res then
@@ -18,17 +19,6 @@ AddEventHandler('gameEventTriggered', function (name, args)
         local isDestroyed = args[6] == 1
         local weapon = args[7]
 
-        -- lib.print.info(
-        --     string.format(
-        --         "Plane Net/Handle - %s/%s | Entity Damage - %s | Destroyed - %s | Weapon - %s | Weapon Hash - %s",
-        --         vehicle.cargoNet,
-        --         NetworkGetEntityFromNetworkId(vehicle.cargoNet),
-        --         tostring(entity),
-        --         tostring(isDestroyed),
-        --         tostring(weapon),
-        --         `WEAPON_EXPLOSION`
-        --     )
-        -- )
         if not isDestroyed then return end
         
         if weapon ~= `WEAPON_EXPLOSION` then return end
@@ -69,6 +59,10 @@ RegisterNetEvent("echo_smugglerheist:client:sentNotify", function(notification, 
     Notify(notification, time)
 end)
 
-CreateThread(function()
-    mission.setup()
+-- Heist resetting
+AddStateBagChangeHandler("echo_smugglerheist:started", "", function(bagName, key, value, reserved, replicated)
+    if not value then
+        print("heist finished, clear drop off target")
+        mission.finish()
+    end
 end)

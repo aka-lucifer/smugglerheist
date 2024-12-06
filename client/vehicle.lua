@@ -9,6 +9,8 @@ local vehicle = {
     spawnedCrates = {}
 }
 
+--- Attach the crates to the crashed cargoplane (would be best to be refactored to server side logic)
+---@param entity integer
 function vehicle.attachCrates(entity)
     if not vehicle.cargoNet or NetToVeh(vehicle.cargoNet) ~= entity then return end 
 
@@ -57,6 +59,7 @@ function vehicle.attachCrates(entity)
     })
 end
 
+-- Remove all crates from the cargoplane
 function vehicle.deleteCrates()
     for i = 1, #vehicle.spawnedCrates do
         if vehicle.spawnedCrates[i] and DoesEntityExist(vehicle.spawnedCrates[i]) then
@@ -345,7 +348,7 @@ AddStateBagChangeHandler("cargoPlaneJet", '', function(entity, _, value)
     end
 end)
 
-
+-- Plane Hacking
 AddStateBagChangeHandler("echo_smugglerheist:hacked", "", function(bagName, key, value, reserved, replicated)
     if value then
         if not vehicle.cargoNet or not NetworkDoesEntityExistWithNetworkId(vehicle.cargoNet) then return end

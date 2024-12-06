@@ -2,7 +2,8 @@
     "task": {
         "mission_start": "Enter the plane and locate the ~y~Cargoplane~w~ and ~y~hack the network ~w~to ~r~prevent jets~w~.",
         "plant_bombs": "~y~Parachute ~w~onto the plane and plants ~r~bombs ~w~ on each ~y~wing~w~.",
-        "escape": "~r~Escape the plane ~w~and collect the ~y~loot ~w~once it ~r~crashes~w~."
+        "escape": "~r~Escape the plane ~w~and collect the ~y~loot ~w~once it ~r~crashes~w~.",
+        "drop_off_goods": "Head to the ~y~drop off location ~w~on your ~g~map~w~."
     },
     "error": {
         "no_player": "~r~Unable to get player data!",
@@ -12,6 +13,7 @@
         "cant_afford": "~r~Not enough funds!",
         "mission_not_active": "~r~Mission not active!",
         "already_hacked": "~r~Plane already hacked!",
-        "being_hacked": "~r~Someone already hacking plane!"
+        "being_hacked": "~r~Someone already hacking plane!",
+        "items_not_found": "~r~You don't have all the loot on you!"
     }
 }

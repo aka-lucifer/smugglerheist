@@ -1,6 +1,9 @@
 local config = require "config.server"
-local vehicle = require "server.vehicle"
-local mission = {}
+local sharedConfig = require "config.shared"
+local mission = {
+    openingCrate = false,
+    itemsGiven = {}
+}
 
 GlobalState["echo_smugglerheist:started"] = false
 GlobalState["echo_smugglerheist:cooldown"] = nil
@@ -14,6 +17,14 @@ function mission.start(source)
     vehicle.createPlane(src)
     vehicle.startDistTask()
     TriggerClientEvent("echo_smugglerheist:client:sentNotify", src, locale('task.mission_start'))
+end
+
+-- Reset the global statebags, enable cooldown and remove the cargoplane if it exists
+function mission.finish()
+    GlobalState["echo_smugglerheist:started"] = false
+    GlobalState["echo_smugglerheist:cooldown"] = os.time() + 1800 -- 30 minute cooldown
+    vehicle.finish()
+    vehicle.deleteCargo()
 end
 
 --- Registers the mission server callbacks
@@ -35,6 +46,39 @@ function mission.init()
         player.Functions.RemoveMoney(config.paymentType, math.ceil(config.missionCost), "echo_smugglerheist - start")
         mission.start(src)
         return true
+    end)
+
+    lib.callback.register('echo_smugglerheist:deliverGoods', function(source)
+        if not GlobalState["echo_smugglerheist:started"] then return end
+        if not GlobalState["echo_smugglerheist:hacked"] then return end
+        if not GlobalState["echo_smugglerheist:bombed"] then return end
+        if GlobalState['echo_smugglerheist:cratesOpened'] ~= #sharedConfig.crateOffsets then return end
+        
+        local src = source --[[@as number]]
+        local player = exports.qbx_core:GetPlayer(source)
+        if not player then return end
+
+        local hasAllItems = false
+
+        for item, amount in pairs(mission.itemsGiven) do
+            local itemCount = exports.ox_inventory:GetItemCount(src, item)
+            if itemCount < amount then return false, locale("error.items_not_found") end
+
+            if next(mission.itemsGiven, item) == nil then
+                hasAllItems = true
+            end
+        end
+        
+        if hasAllItems then
+            for item, amount in pairs(mission.itemsGiven) do
+                exports.ox_inventory:RemoveItem(src, item, amount)
+            end
+
+            player.Functions.AddMoney("cash", config.reward, "echo_smugglerheist - delivered goods")
+            mission.finish()
+
+            return true
+        end
     end)
 end
 

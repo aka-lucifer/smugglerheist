@@ -21,5 +21,6 @@ return {
     },
     flatRotation = vec3(2.036057, -0.087843, -104.172180),
     cargoRearDoorId = 2, -- The hatch door ID of the cargoplane
-    cargoCockpitDoorId = 4 -- The front cockpit part door ID of the cargoplane
+    cargoCockpitDoorId = 4, -- The front cockpit part door ID of the cargoplane
+    dropOff = vec4(-1667.04, -887.83, 7.64, 121.99)
 }

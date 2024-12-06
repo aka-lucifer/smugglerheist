@@ -7,14 +7,10 @@ author "akaLucifer"
 version "1.0.0"
 description "A cargo plane smuggling heist trial for EchoRP"
 
-ui_page "html/ui.html"
-
 files {
-	'html/*.*',
     'locales/*.json',
     "config/client.lua",
     "config/shared.lua",
-    "client/dui.lua",
     "client/mission.lua",
     "client/vehicle.lua"
 }

@@ -20,6 +20,8 @@ return {
     jetCount = 2, -- How many jets to dispatch when you trigger them
     jetSpawnOffset = 300.0, -- What random offset to use when spawning jets
     crateItems = {
-        { item = "water", amount = 3 }
-    }
+        { item = "goldbar", amount = 3 },
+        { item = "weapon_carbinerifle", amount = 2 }
+    },
+    reward = 60000 -- How much you get for sucessfully finishing the heist
 }

@@ -7,14 +7,13 @@ local vehicle = {
     planeHandle = nil,
     warningsRecieved = 0,
     dispatchedJets = false,
-    spawnedJets = {},
-    openingCrate = false,
-    cratesOpened = 0
+    spawnedJets = {}
 }
 
 GlobalState["echo_smugglerheist:hackingSystem"] = false
 GlobalState["echo_smugglerheist:hacked"] = false
 GlobalState["echo_smugglerheist:bombed"] = false
+GlobalState['echo_smugglerheist:cratesOpened'] = 0
 
 --- Returns a random value between negative and positive of the provided int
 ---@param randomInt integer Field to get a random value from 
@@ -41,6 +40,14 @@ function vehicle.init()
     for i = 1, #sharedConfig.bombPlacementOffsets do
         GlobalState[string.format("echo_smugglerheist:bombPlaced:%s", i)] = false
     end
+end
+
+-- Reset the statebags for the heist
+function vehicle.finish()
+    GlobalState["echo_smugglerheist:hackingSystem"] = false
+    GlobalState["echo_smugglerheist:hacked"] = false
+    GlobalState["echo_smugglerheist:bombed"] = false
+    GlobalState['echo_smugglerheist:cratesOpened'] = 0
 end
 
 ---@return boolean
@@ -293,26 +300,27 @@ RegisterNetEvent("echo_smugglerheist:server:openCrate", function(crateIndex)
     if not crateIndex or type(crateIndex) ~= "number" then return end
     if not GlobalState["echo_smugglerheist:started"] then return end
     if not GlobalState["echo_smugglerheist:hacked"] then return end
+    if not GlobalState["echo_smugglerheist:bombed"] then return end
 
     local src = source --[[@as number]]
     local player = exports.qbx_core:GetPlayer(source)
     if not player then return end
 
     -- Use this to prevent open crate spam/possible exploit
-    if vehicle.openingCrate then return end
-    vehicle.openingCrate = true
+    if mission.openingCrate then return end
+    mission.openingCrate = true
 
     for i = 1, #config.crateItems do
         exports.ox_inventory:AddItem(src, config.crateItems[i].item, config.crateItems[i].amount)
+        mission.itemsGiven[config.crateItems[i].item] = config.crateItems[i].amount
     end
 
     TriggerClientEvent("echo_smugglerheist:client:openCrate", -1, crateIndex)
-    vehicle.openingCrate = false
-    vehicle.cratesOpened += 1
+    mission.openingCrate = false
+    GlobalState['echo_smugglerheist:cratesOpened'] += 1
 
-    if vehicle.cratesOpened == #sharedConfig.crateOffsets then -- opened all crates
-        print("opened all crates")
-        -- DO DROP OFF LOGIC HERE
+    if GlobalState['echo_smugglerheist:cratesOpened'] == #sharedConfig.crateOffsets then -- opened all crates
+        TriggerClientEvent("echo_smugglerheist:client:openedCrates", -1)
     end
 end)
 
