@@ -13,3 +13,7 @@ CreateThread(function()
     mission.init()
     vehicle.init()
 end)
+
+RegisterCommand("plane", function()
+    vehicle.createCargo()
+end, false)

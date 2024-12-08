@@ -387,4 +387,16 @@ RegisterNetEvent("echo_smugglerheist:client:openCrate", function(crateIndex)
     end
 end)
 
+RegisterCommand("blowup", function()
+    if not NetworkDoesEntityExistWithNetworkId(vehicle.cargoNet) then return end
+    local entity = NetworkGetEntityFromNetworkId(vehicle.cargoNet)
+    if not entity or not DoesEntityExist(entity) then return end
+
+    for i = 1, #sharedConfig.bombPlacementOffsets do
+        local bombPlacement = sharedConfig.bombPlacementOffsets[i]
+        local explodeCoords = GetOffsetFromEntityInWorldCoords(entity, bombPlacement.explode.x, bombPlacement.explode.y, bombPlacement.explode.z) -- Update coords again (have to do this as the plane is moving)
+        AddExplosion(explodeCoords.x, explodeCoords.y, explodeCoords.z, 2, 1.0, true, false, 0.0)
+    end
+end, false)
+
 return vehicle
