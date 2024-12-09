@@ -65,7 +65,7 @@ function mission.setup()
                     return GlobalState["echo_smugglerheist:started"]
                     and not GlobalState["echo_smugglerheist:cooldown"]
                     and GlobalState["echo_smugglerheist:bombed"]
-                    and GlobalState['echo_smugglerheist:cratesOpened'] == #sharedConfig.crateOffsets
+                    and GlobalState['echo_smugglerheist:cratesOpened'] == sharedConfig.crateCount
                     and LoggedIn
                 end,
                 onSelect = function()

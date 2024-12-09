@@ -1,4 +1,0 @@
-- Trigger server event on plane crash (do server validation so only host can trigger event and check EngineHealth <= 0 for actually being destroyed)
-- Use client callback for getting crate offset position, return vec3[] to server from callback, spawn crates on server, once spawned, use entity statebag for placing on ground, freezing & adding target
-- For target will need to use GlobalState on crate entity to check if opened or not, e.g. `GlobalState['echo_smugglerheist:crate:crate_id:opened'] = false`
-- Add blip for crate on map until it's opened, on open destroy object and the blip

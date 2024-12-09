@@ -11,10 +11,5 @@ return {
             explode = vec3(29.0, -7.0, 1.16)
         },
     },
-    crateOffsets = { -- Offsets where to spawn the crates inside the cargoplane
-        vec3(-1.7, 25.7, 0.0), -- FL
-        vec3(1.6, 26.0, 0.0), -- FR
-        vec3(-1.9, 2.4, 0.0), -- RL
-        vec3(1.9, 2.5, 0.0) -- RR
-    }
+    crateCount = 4, -- How many crates to spawn when the plane crashes
 }

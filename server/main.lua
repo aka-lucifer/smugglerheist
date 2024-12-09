@@ -5,7 +5,8 @@ mission = require "server.mission"
 
 AddEventHandler("onResourceStop", function(res)
     if GetCurrentResourceName() == res then
-        vehicle.deleteCargo()
+        vehicle.deleteCargo(true)
+        vehicle.deleteCrates()
     end
 end)
 
@@ -13,7 +14,3 @@ CreateThread(function()
     mission.init()
     vehicle.init()
 end)
-
-RegisterCommand("plane", function()
-    vehicle.createCargo()
-end, false)

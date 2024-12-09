@@ -3,71 +3,66 @@ local sharedConfig = require 'config.shared'
 local metersPerSecondConversion = 0.44704
 local showingHack = false
 local hackingPlane = false
+local crashBlip = nil
 local vehicle = {
     cargoNet = nil,
-    planeNet = nil,
-    spawnedCrates = {}
+    planeNet = nil
 }
 
---- Attach the crates to the crashed cargoplane (would be best to be refactored to server side logic)
----@param entity integer
-function vehicle.attachCrates(entity)
-    if not vehicle.cargoNet or NetToVeh(vehicle.cargoNet) ~= entity then return end 
+--- Get groundZ coord at passed x & y coordinates (credit qbox core)
+---@param coords vector3
+---@return boolean, number
+local function getGroundCoord(coords) -- Credit qbx_core
+    local x, y, groundZ, Z_START = coords.x, coords.y, 850.0, 950.0
+    local found = false
 
-    lib.requestModel(`ex_prop_crate_closed_mw`)
-    for i = 1, #sharedConfig.crateOffsets do
-        local coords = GetOffsetFromEntityInWorldCoords(entity, sharedConfig.crateOffsets[i].x, sharedConfig.crateOffsets[i].y, sharedConfig.crateOffsets[i].z - 4.0)
-        local obj = CreateObject(`ex_prop_crate_closed_mw`, coords.x, coords.y, coords.z, false, false, false)
-        local exists = lib.waitFor(function()
-            if DoesEntityExist(obj) then return true end
-        end)
+    for i = Z_START, 0, -25.0 do
+        local z = i
+        if (i % 2) ~= 0 then
+            z = Z_START - i
+        end
 
-        if not exists then return end
-
-        FreezeEntityPosition(entity, true) -- Freeze crate position
-        local planeRot = GetEntityRotation(entity, 2)
-        SetEntityRotation(obj, planeRot.x, planeRot.y, planeRot.z, 2, false) -- Make sure plane and crate have some rotation
-        SetEntityNoCollisionEntity(entity, obj, false) -- Disables collision between box and plane
-        table.insert(vehicle.spawnedCrates, obj)
+        -- Get ground coord. As mentioned in the natives, this only works if the client is in render distance.
+        found, groundZ = GetGroundZFor_3dCoord(x, y, z, false);
+        if found then
+            return true, groundZ
+        end
+        Wait(0)
     end
 
-    exports.ox_target:addLocalEntity(vehicle.spawnedCrates, {
-        {
-            name = "collect_crate",
-            label = "Open Crate",
-            icon = "fa-solid fa-box-open",
-            distance = 2.0,
-            canInteract = function()
-                return GlobalState["echo_smugglerheist:started"] and GlobalState["echo_smugglerheist:bombed"] and LoggedIn
-            end,
-            onSelect = function(data)
-                if data.entity and DoesEntityExist(data.entity) then
-                    local index = -1
-                    for i = 1, #vehicle.spawnedCrates do
-                        if vehicle.spawnedCrates[i] == data.entity then
-                            index = i
-                            break
-                        end
-                    end
-
-                    if index ~= -1 then
-                        TriggerServerEvent("echo_smugglerheist:server:openCrate", index)
-                    end
-                end
-            end
-        }
-    })
+    return false, -1
 end
 
--- Remove all crates from the cargoplane
-function vehicle.deleteCrates()
-    for i = 1, #vehicle.spawnedCrates do
-        if vehicle.spawnedCrates[i] and DoesEntityExist(vehicle.spawnedCrates[i]) then
-            DeleteEntity(vehicle.spawnedCrates[i])
-        end
-    end
+--- Register the vehicle client callbacks
+function vehicle.init()
+    
+    ---@param cargoCoords vector3
+    ---@param crateCount integer
+    lib.callback.register("echo_smugglerheist:getCratePositions", function(cargoCoords, crateCount)
+        if not cargoCoords or type(cargoCoords) ~= "vector3" then return end
+        if not crateCount or type(crateCount) ~= "number" then return end
+        
+        local offsets = {}
 
-    vehicle.spawnedCrates = {}
+        for i = 1, crateCount do
+            local offsetCoords = vector3(
+                cargoCoords.x + math.random(config.crateOffset.min, config.crateOffset.max),
+                cargoCoords.y + math.random(config.crateOffset.min, config.crateOffset.max),
+                cargoCoords.z
+            )
+            local found, zCoord = getGroundCoord(offsetCoords)
+
+            if found then
+                offsetCoords = vector(offsetCoords.x, offsetCoords.y, zCoord)
+            else
+                print("couldnt find ground, so using plane Z coord") -- This shouldn't happen as you are always near plane once it crashes [needs testing tho]
+            end
+
+            table.insert(offsets, offsetCoords)
+        end
+
+        return offsets
+    end)
 end
 
 --- Converts MPH to meters per second.
@@ -283,7 +278,7 @@ function vehicle.startBombTask(entity)
                                 
                                 Wait(5000)
                                 local explodeCoords = GetOffsetFromEntityInWorldCoords(entity, bombPlacement.explode.x, bombPlacement.explode.y, bombPlacement.explode.z) -- Update coords again (have to do this as the plane is moving)
-                                AddExplosion(explodeCoords.x, explodeCoords.y, explodeCoords.z, 2, 1.0, true, false, 0.0)
+                                AddExplosion(explodeCoords.x, explodeCoords.y, explodeCoords.z, 2, 1.0, true, false, 1.0)
                                 DeleteEntity(obj)
                                 TriggerServerEvent("echo_smugglerheist:server:bombedPlane", i)
                             end
@@ -311,9 +306,13 @@ end
 
 -- Clean up memory
 function vehicle.finish()
-    vehicle.deleteCrates()
     vehicle.cargoNet = nil
     vehicle.planeNet = nil
+
+    if crashBlip then
+        RemoveBlip(crashBlip)
+        crashBlip = nil
+    end
 end
 
 -- Cargoplane & Pilot
@@ -333,7 +332,6 @@ AddStateBagChangeHandler("heistCargoPlane", '', function(entity, _, value)
         vehicle.headToDestination(pilotEntity, planeEntity, config.travelSpeed)
     end
 end)
-
 
 -- Military Jets
 AddStateBagChangeHandler("cargoPlaneJet", '', function(entity, _, value)
@@ -368,6 +366,34 @@ AddStateBagChangeHandler("echo_smugglerheist:hacked", "", function(bagName, key,
     end
 end)
 
+--- Cargo Crate
+AddStateBagChangeHandler("cargoCrate", "", function(entity, _, value)
+    local entity, netId = GetEntityAndNetIdFromBagName(entity)
+
+    if entity then
+        PlaceObjectOnGroundProperly(entity)
+        ActivatePhysics(entity)
+        FreezeEntityPosition(entity, true)
+
+        AddBlipForEntity(entity)
+        exports.ox_target:addEntity(netId, {
+            {
+                name = "collect_crate",
+                label = "Open Crate",
+                icon = "fa-solid fa-parachute-box",
+                distance = 2.0,
+                canInteract = function()
+                    return not GlobalState[string.format("echo_smugglerheist:crate:%s:opened", value)]
+                end,
+                onSelect = function(data)
+                    if not NetworkGetEntityIsNetworked(data.entity) then return end
+                    TriggerServerEvent("echo_smugglerheist:server:openedCrate", NetworkGetNetworkIdFromEntity(data.entity))
+                end
+            }
+        })
+    end
+end)
+
 ---@param netId integer
 RegisterNetEvent("echo_smugglerheist:client:createdPlane", function(netId)
     if not netId or not NetworkDoesEntityExistWithNetworkId(netId) then return end
@@ -377,26 +403,20 @@ RegisterNetEvent("echo_smugglerheist:client:createdPlane", function(netId)
     vehicle.startHackTask(entity)
 end)
 
----@param crateIndex integer
-RegisterNetEvent("echo_smugglerheist:client:openCrate", function(crateIndex)
-    if not crateIndex or type(crateIndex) ~= "number" then return end
-    if vehicle.spawnedCrates[crateIndex] and DoesEntityExist(vehicle.spawnedCrates[crateIndex]) then
-        exports.ox_target:removeLocalEntity(vehicle.spawnedCrates[crateIndex], "collect_crate")
-        DeleteEntity(vehicle.spawnedCrates[crateIndex])
-        table.remove(vehicle.spawnedCrates, crateIndex)
+---@param crashCoords vector3
+RegisterNetEvent("echo_smugglerheist:client:cargoCrashed", function(crashCoords)
+    if crashBlip then
+        RemoveBlip(crashBlip)
+        crashBlip = nil
     end
+
+    crashBlip = AddBlipForRadius(crashCoords.x, crashCoords.y, crashCoords.z, 300.0)
+    SetBlipColour(crashBlip, config.blip.crash.colour)
+    SetBlipAlpha(crashBlip, config.blip.crash.alpha)
+
+    SetTimeout(config.blip.crash.length, function()
+        RemoveBlip(crashBlip)
+    end)
 end)
-
-RegisterCommand("blowup", function()
-    if not NetworkDoesEntityExistWithNetworkId(vehicle.cargoNet) then return end
-    local entity = NetworkGetEntityFromNetworkId(vehicle.cargoNet)
-    if not entity or not DoesEntityExist(entity) then return end
-
-    for i = 1, #sharedConfig.bombPlacementOffsets do
-        local bombPlacement = sharedConfig.bombPlacementOffsets[i]
-        local explodeCoords = GetOffsetFromEntityInWorldCoords(entity, bombPlacement.explode.x, bombPlacement.explode.y, bombPlacement.explode.z) -- Update coords again (have to do this as the plane is moving)
-        AddExplosion(explodeCoords.x, explodeCoords.y, explodeCoords.z, 2, 1.0, true, false, 0.0)
-    end
-end, false)
 
 return vehicle

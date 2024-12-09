@@ -7,7 +7,8 @@ local vehicle = {
     planeHandle = nil,
     warningsRecieved = 0,
     dispatchedJets = false,
-    spawnedJets = {}
+    spawnedJets = {},
+    crates = {}
 }
 
 GlobalState["echo_smugglerheist:hackingSystem"] = false
@@ -44,7 +45,7 @@ end
 
 -- Reset the statebags for the heist
 function vehicle.finish()
-    vehicle.deleteCargo()
+    vehicle.deleteCargo(true)
     vehicle.deleteJets()
     vehicle.warningsRecieved = 0
     vehicle.dispatchedJets = false
@@ -69,8 +70,9 @@ function vehicle.planeExists()
     return vehicle.planeHandle and DoesEntityExist(vehicle.planeHandle) -- Checks if variable is defined and entity exists on server
 end
 
---- Delete cargoplane and mission plane if exists
-function vehicle.deleteCargo()
+--- Delete cargoplane, pilot and mission plane if exists
+---@param deleteMission? boolean Whether or not to delete the mission plane too
+function vehicle.deleteCargo(deleteMission)
     if vehicle.cargoExists() then -- Make sure the cargoplane actually exists
         DeleteEntity(vehicle.cargoHandle) -- Delete entity
         vehicle.cargoHandle = nil -- Set cargoplane variable to null
@@ -81,6 +83,7 @@ function vehicle.deleteCargo()
         vehicle.pilotHandle = nil -- Set pilot variable to null
     end
 
+    if not deleteMission then return end
     if vehicle.planeExists() then -- Make sure the plane actually exists
         DeleteEntity(vehicle.planeHandle) -- Delete entity
         vehicle.planeHandle = nil -- Set plane variable to null
@@ -256,6 +259,36 @@ function vehicle.startDistTask()
     end)
 end
 
+--- Create cargoplane crates
+---@param positions vector3[]
+function vehicle.createCrates(positions)
+    if sharedConfig.debug then
+        print("crate positions", json.encode(positions, { indent = true }))
+    end
+
+    for i = 1, #positions do
+        local obj = CreateObjectNoOffset(`ex_prop_crate_closed_mw`, positions[i].x, positions[i].y, positions[i].z, true, false, false)
+        while not DoesEntityExist(obj) do Wait(5) end
+
+        Entity(obj).state:set("cargoCrate", true, true)
+        GlobalState[string.format("echo_smugglerheist:crate:%s:opened", i)] = false
+        table.insert(vehicle.crates, obj)
+    end
+end
+
+--- Delete cargoplane crates
+function vehicle.deleteCrates()
+    for index, crate in pairs(vehicle.crates) do
+        if DoesEntityExist(crate) then
+            DeleteEntity(crate)
+        end
+        
+        GlobalState[string.format("echo_smugglerheist:crate:%s:opened", index)] = nil
+    end
+    
+    vehicle.crates = {}
+end
+
 ---@param success boolean Was the hack successful
 RegisterNetEvent("echo_smugglerheist:server:attemptedHack", function(success)
     if not GlobalState["echo_smugglerheist:started"] then return end
@@ -299,9 +332,33 @@ RegisterNetEvent("echo_smugglerheist:server:bombedPlane", function(bombIndex)
     end
 end)
 
----@param crateIndex integer
-RegisterNetEvent("echo_smugglerheist:server:openCrate", function(crateIndex)
-    if not crateIndex or type(crateIndex) ~= "number" then return end
+RegisterNetEvent("echo_smugglerheist:server:cargoDestroyed", function(vehicleNet)
+    if not vehicleNet or type(vehicleNet) ~= "number" then return end
+    if not GlobalState["echo_smugglerheist:started"] then return end
+    if not GlobalState["echo_smugglerheist:hacked"] then return end
+    if not GlobalState["echo_smugglerheist:bombed"] then return end
+
+    local src = source --[[@as number]]
+    if GlobalState["echo_smugglerheist:host"] ~= src then return end
+    if vehicleNet ~= NetworkGetNetworkIdFromEntity(vehicle.cargoHandle) then return end
+    if GetVehicleEngineHealth(vehicle.cargoHandle) > 0.0 then return end
+
+    local player = exports.qbx_core:GetPlayer(source)
+    if not player then return end
+
+    local cargoCoords = GetEntityCoords(vehicle.cargoHandle)
+    vehicle.deleteCargo()
+
+    local cratePositions = lib.callback.await("echo_smugglerheist:getCratePositions", src, cargoCoords, sharedConfig.crateCount)
+    if not cratePositions then return end
+
+    vehicle.createCrates(cratePositions)
+    TriggerClientEvent("echo_smugglerheist:client:cargoCrashed", -1, cargoCoords)
+end)
+
+---@param netId integer
+RegisterNetEvent("echo_smugglerheist:server:openedCrate", function(netId)
+    if not netId or type(netId) ~= "number" then return end
     if not GlobalState["echo_smugglerheist:started"] then return end
     if not GlobalState["echo_smugglerheist:hacked"] then return end
     if not GlobalState["echo_smugglerheist:bombed"] then return end
@@ -310,20 +367,35 @@ RegisterNetEvent("echo_smugglerheist:server:openCrate", function(crateIndex)
     local player = exports.qbx_core:GetPlayer(source)
     if not player then return end
 
+    local crateIndex = nil
+    for index, crate in pairs(vehicle.crates) do
+        if netId == NetworkGetNetworkIdFromEntity(crate) then
+            crateIndex = index
+            break
+        end
+    end
+
+    if not crateIndex then return end
+
     -- Use this to prevent open crate spam/possible exploit
     if mission.openingCrate then return end
     mission.openingCrate = true
 
+    DeleteEntity(vehicle.crates[crateIndex])
+    table.remove(vehicle.crates, crateIndex)
+    GlobalState[string.format("echo_smugglerheist:crate:%s:opened", crateIndex)] = nil
+
+    -- Probably could change this up a bit, but not exactly bad or broken
     for i = 1, #config.crateItems do
         exports.ox_inventory:AddItem(src, config.crateItems[i].item, config.crateItems[i].amount)
         mission.itemsGiven[config.crateItems[i].item] = config.crateItems[i].amount
     end
+    -- Probably could change this up a bit, but not exactly bad or broken
 
-    TriggerClientEvent("echo_smugglerheist:client:openCrate", -1, crateIndex)
     mission.openingCrate = false
     GlobalState['echo_smugglerheist:cratesOpened'] += 1
 
-    if GlobalState['echo_smugglerheist:cratesOpened'] == #sharedConfig.crateOffsets then -- opened all crates
+    if GlobalState['echo_smugglerheist:cratesOpened'] == sharedConfig.crateCount then -- opened all crates
         TriggerClientEvent("echo_smugglerheist:client:openedCrates", -1)
     end
 end)
