@@ -375,7 +375,10 @@ AddStateBagChangeHandler("cargoCrate", "", function(entity, _, value)
         ActivatePhysics(entity)
         FreezeEntityPosition(entity, true)
 
-        AddBlipForEntity(entity)
+        if sharedConfig.debug then
+            AddBlipForEntity(entity)
+        end
+        
         exports.ox_target:addEntity(netId, {
             {
                 name = "collect_crate",
