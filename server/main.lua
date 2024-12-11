@@ -6,7 +6,7 @@ mission = require "server.mission"
 AddEventHandler("onResourceStop", function(res)
     if GetCurrentResourceName() == res then
         vehicle.deleteCargo(true)
-        vehicle.deleteCrates()
+        vehicle.cleanupCrates()
     end
 end)
 

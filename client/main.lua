@@ -7,6 +7,12 @@ local vehicle = require "client.vehicle"
 
 LoggedIn = false
 
+AddEventHandler("onResourceStop", function(res)
+    if GetCurrentResourceName() == res then
+        vehicle.deleteCrates()
+    end
+end)
+
 AddEventHandler('gameEventTriggered', function (name, args)
     if name == 'CEventNetworkEntityDamage' then
         local entity = args[1]

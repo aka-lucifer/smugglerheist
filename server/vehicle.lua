@@ -259,34 +259,18 @@ function vehicle.startDistTask()
     end)
 end
 
---- Create cargoplane crates
----@param positions vector3[]
-function vehicle.createCrates(positions)
-    if sharedConfig.debug then
-        print("crate positions", json.encode(positions, { indent = true }))
-    end
-
-    for i = 1, #positions do
-        local obj = CreateObjectNoOffset(`ex_prop_crate_closed_mw`, positions[i].x, positions[i].y, positions[i].z, true, false, false)
-        while not DoesEntityExist(obj) do Wait(5) end
-
-        Entity(obj).state:set("cargoCrate", true, true)
+--- Create cargoplane crate globalstates
+function vehicle.setupCrates()
+    for i = 1, sharedConfig.crateCount do
         GlobalState[string.format("echo_smugglerheist:crate:%s:opened", i)] = false
-        table.insert(vehicle.crates, obj)
     end
 end
 
---- Delete cargoplane crates
-function vehicle.deleteCrates()
-    for index, crate in pairs(vehicle.crates) do
-        if DoesEntityExist(crate) then
-            DeleteEntity(crate)
-        end
-        
-        GlobalState[string.format("echo_smugglerheist:crate:%s:opened", index)] = nil
+--- Cleanup cargoplane crate globalstates
+function vehicle.cleanupCrates()
+    for i = 1, sharedConfig.crateCount do
+        GlobalState[string.format("echo_smugglerheist:crate:%s:opened", i)] = nil
     end
-    
-    vehicle.crates = {}
 end
 
 ---@param success boolean Was the hack successful
@@ -333,6 +317,7 @@ RegisterNetEvent("echo_smugglerheist:server:bombedPlane", function(bombIndex)
 end)
 
 RegisterNetEvent("echo_smugglerheist:server:cargoDestroyed", function(vehicleNet)
+    print("destroy", GlobalState["echo_smugglerheist:host"])
     if not vehicleNet or type(vehicleNet) ~= "number" then return end
     if not GlobalState["echo_smugglerheist:started"] then return end
     if not GlobalState["echo_smugglerheist:hacked"] then return end
@@ -351,14 +336,18 @@ RegisterNetEvent("echo_smugglerheist:server:cargoDestroyed", function(vehicleNet
 
     local cratePositions = lib.callback.await("echo_smugglerheist:getCratePositions", src, cargoCoords, sharedConfig.crateCount)
     if not cratePositions then return end
+    
+    if sharedConfig.debug then
+        print("crate positions", json.encode(cratePositions, { indent = true }))
+    end
 
-    vehicle.createCrates(cratePositions)
-    TriggerClientEvent("echo_smugglerheist:client:cargoCrashed", -1, cargoCoords)
+    vehicle.setupCrates()
+    TriggerClientEvent("echo_smugglerheist:client:cargoCrashed", -1, cargoCoords, cratePositions)
 end)
 
----@param netId integer
-RegisterNetEvent("echo_smugglerheist:server:openedCrate", function(netId)
-    if not netId or type(netId) ~= "number" then return end
+---@param crateIndex integer
+RegisterNetEvent("echo_smugglerheist:server:openedCrate", function(crateIndex)
+    if not crateIndex or type(crateIndex) ~= "number" then return end
     if not GlobalState["echo_smugglerheist:started"] then return end
     if not GlobalState["echo_smugglerheist:hacked"] then return end
     if not GlobalState["echo_smugglerheist:bombed"] then return end
@@ -367,22 +356,10 @@ RegisterNetEvent("echo_smugglerheist:server:openedCrate", function(netId)
     local player = exports.qbx_core:GetPlayer(source)
     if not player then return end
 
-    local crateIndex = nil
-    for index, crate in pairs(vehicle.crates) do
-        if netId == NetworkGetNetworkIdFromEntity(crate) then
-            crateIndex = index
-            break
-        end
-    end
-
-    if not crateIndex then return end
-
     -- Use this to prevent open crate spam/possible exploit
     if mission.openingCrate then return end
     mission.openingCrate = true
-
-    DeleteEntity(vehicle.crates[crateIndex])
-    table.remove(vehicle.crates, crateIndex)
+    
     GlobalState[string.format("echo_smugglerheist:crate:%s:opened", crateIndex)] = nil
 
     -- Probably could change this up a bit, but not exactly bad or broken
@@ -392,6 +369,7 @@ RegisterNetEvent("echo_smugglerheist:server:openedCrate", function(netId)
     end
     -- Probably could change this up a bit, but not exactly bad or broken
 
+    TriggerClientEvent("echo_smugglerheist:client:openedCrate", -1, crateIndex)
     mission.openingCrate = false
     GlobalState['echo_smugglerheist:cratesOpened'] += 1
 

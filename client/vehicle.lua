@@ -6,7 +6,8 @@ local hackingPlane = false
 local crashBlip = nil
 local vehicle = {
     cargoNet = nil,
-    planeNet = nil
+    planeNet = nil,
+    crates = {}
 }
 
 --- Get groundZ coord at passed x & y coordinates (credit qbox core)
@@ -304,6 +305,69 @@ function vehicle.startBombTask(entity)
     end)
 end
 
+---comment
+---@param positions vector3[]
+function vehicle.createCrates(positions)
+    lib.requestModel(`ex_prop_crate_closed_mw`)
+    for i = 1, #positions do
+        local obj = CreateObject(`ex_prop_crate_closed_mw`, positions[i].x, positions[i].y, positions[i].z, false, false, false)
+        local exists = lib.waitFor(function()
+            if DoesEntityExist(obj) then return true end
+        end)
+
+        if not exists then return end
+
+        PlaceObjectOnGroundProperly(obj)
+        FreezeEntityPosition(obj, true) -- Freeze crate position
+        table.insert(vehicle.crates, obj)
+        
+        if sharedConfig.debug then
+            AddBlipForCoord(positions[i].x, positions[i].y, positions[i].z)
+        end
+
+        exports.ox_target:addLocalEntity(obj, {
+            {
+                name = "collect_crate",
+                label = locale("target.open_crate"),
+                icon = "fa-solid fa-box-open",
+                distance = 2.0,
+                canInteract = function()
+                    return GlobalState["echo_smugglerheist:started"]
+                    and GlobalState["echo_smugglerheist:bombed"]
+                    and not GlobalState[string.format("echo_smugglerheist:crate:%s:opened", i)]
+                    and LoggedIn
+                end,
+                onSelect = function(data)
+                    if data.entity and DoesEntityExist(data.entity) then
+                        local index = -1
+                        for i = 1, #vehicle.crates do
+                            if vehicle.crates[i] == data.entity then
+                                index = i
+                                break
+                            end
+                        end
+
+                        if index ~= -1 then
+                            TriggerServerEvent("echo_smugglerheist:server:openedCrate", index)
+                        end
+                    end
+                end
+            }
+        })
+    end
+end
+
+-- Remove all crates from the cargoplane
+function vehicle.deleteCrates()
+    for i = 1, #vehicle.crates do
+        if vehicle.crates[i] and DoesEntityExist(vehicle.crates[i]) then
+            DeleteEntity(vehicle.crates[i])
+        end
+    end
+
+    vehicle.crates = {}
+end
+
 -- Clean up memory
 function vehicle.finish()
     vehicle.cargoNet = nil
@@ -407,7 +471,8 @@ RegisterNetEvent("echo_smugglerheist:client:createdPlane", function(netId)
 end)
 
 ---@param crashCoords vector3
-RegisterNetEvent("echo_smugglerheist:client:cargoCrashed", function(crashCoords)
+---@param cratePositions vector3[]
+RegisterNetEvent("echo_smugglerheist:client:cargoCrashed", function(crashCoords, cratePositions)
     if crashBlip then
         RemoveBlip(crashBlip)
         crashBlip = nil
@@ -420,6 +485,18 @@ RegisterNetEvent("echo_smugglerheist:client:cargoCrashed", function(crashCoords)
     SetTimeout(config.blip.crash.length, function()
         RemoveBlip(crashBlip)
     end)
+
+    vehicle.createCrates(cratePositions)
+end)
+
+---@param crateIndex integer
+RegisterNetEvent("echo_smugglerheist:client:openedCrate", function(crateIndex)
+    if not crateIndex or type(crateIndex) ~= "number" then return end
+    if vehicle.crates[crateIndex] and DoesEntityExist(vehicle.crates[crateIndex]) then
+        exports.ox_target:removeLocalEntity(vehicle.crates[crateIndex], "collect_crate")
+        DeleteEntity(vehicle.crates[crateIndex])
+        table.remove(vehicle.crates, crateIndex)
+    end
 end)
 
 return vehicle
