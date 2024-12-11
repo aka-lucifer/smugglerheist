@@ -430,37 +430,6 @@ AddStateBagChangeHandler("echo_smugglerheist:hacked", "", function(bagName, key,
     end
 end)
 
---- Cargo Crate
-AddStateBagChangeHandler("cargoCrate", "", function(entity, _, value)
-    local entity, netId = GetEntityAndNetIdFromBagName(entity)
-
-    if entity then
-        PlaceObjectOnGroundProperly(entity)
-        ActivatePhysics(entity)
-        FreezeEntityPosition(entity, true)
-
-        if sharedConfig.debug then
-            AddBlipForEntity(entity)
-        end
-        
-        exports.ox_target:addEntity(netId, {
-            {
-                name = "collect_crate",
-                label = "Open Crate",
-                icon = "fa-solid fa-parachute-box",
-                distance = 2.0,
-                canInteract = function()
-                    return not GlobalState[string.format("echo_smugglerheist:crate:%s:opened", value)]
-                end,
-                onSelect = function(data)
-                    if not NetworkGetEntityIsNetworked(data.entity) then return end
-                    TriggerServerEvent("echo_smugglerheist:server:openedCrate", NetworkGetNetworkIdFromEntity(data.entity))
-                end
-            }
-        })
-    end
-end)
-
 ---@param netId integer
 RegisterNetEvent("echo_smugglerheist:client:createdPlane", function(netId)
     if not netId or not NetworkDoesEntityExistWithNetworkId(netId) then return end
