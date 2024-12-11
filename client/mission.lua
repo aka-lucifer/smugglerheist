@@ -16,7 +16,7 @@ function mission.setup()
         options = {
             {
                 name = "request_mission",
-                label = "Request Mission",
+                label = locale("target.request"),
                 icon = "fa-solid fa-clipboard",
                 distance = 2.0,
                 canInteract = function()
@@ -58,7 +58,7 @@ function mission.setup()
         exports.ox_target:addLocalEntity(ped, {
             {
                 name = "deliver_goods",
-                label = "Drop Off Goods",
+                label = locale("target.drop_off"),
                 icon = "fa-solid fa-briefcase",
                 distance = 2.0,
                 canInteract = function()
