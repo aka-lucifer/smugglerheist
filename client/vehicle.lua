@@ -339,17 +339,7 @@ function vehicle.createCrates(positions)
                 end,
                 onSelect = function(data)
                     if data.entity and DoesEntityExist(data.entity) then
-                        local index = -1
-                        for i = 1, #vehicle.crates do
-                            if vehicle.crates[i] == data.entity then
-                                index = i
-                                break
-                            end
-                        end
-
-                        if index ~= -1 then
-                            TriggerServerEvent("echo_smugglerheist:server:openedCrate", index)
-                        end
+                        TriggerServerEvent("echo_smugglerheist:server:openedCrate", i)
                     end
                 end
             }
