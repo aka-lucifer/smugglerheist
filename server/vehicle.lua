@@ -14,6 +14,7 @@ local vehicle = {
 GlobalState["echo_smugglerheist:hackingSystem"] = false
 GlobalState["echo_smugglerheist:hacked"] = false
 GlobalState["echo_smugglerheist:bombed"] = false
+GlobalState["echo_smugglerheist:bombsPlaced"] = 0
 GlobalState['echo_smugglerheist:cratesOpened'] = 0
 
 --- Returns a random value between negative and positive of the provided int
@@ -53,6 +54,7 @@ function vehicle.finish()
     GlobalState["echo_smugglerheist:hacked"] = false
     GlobalState["echo_smugglerheist:bombed"] = false
     GlobalState['echo_smugglerheist:cratesOpened'] = 0
+    GlobalState["echo_smugglerheist:bombsPlaced"] = 0
 end
 
 ---@return boolean
@@ -313,6 +315,8 @@ RegisterNetEvent("echo_smugglerheist:server:bombedPlane", function(vehicleNet, b
     if not player then return end
 
     GlobalState[string.format("echo_smugglerheist:bombPlaced:%s", bombIndex)] = true
+    GlobalState["echo_smugglerheist:bombsPlaced"] += 1
+
     if bombIndex == #sharedConfig.bombPlacementOffsets then -- Bombed both engines
         print("bombed plane")
         GlobalState["echo_smugglerheist:bombed"] = true

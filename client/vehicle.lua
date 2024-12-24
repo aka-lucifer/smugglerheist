@@ -266,7 +266,7 @@ function vehicle.startBombTask(entity)
                                 
                                 AttachEntityToEntity(obj, entity, GetEntityBoneIndexByName(entity, "chassis_dummy"), bombPlacement.attach.x, bombPlacement.attach.y, bombPlacement.attach.z, 0.0, 0.0, 0.0, false, false, false, false, 2, false)
                                 
-                                if i == #sharedConfig.bombPlacementOffsets then -- Last bomb
+                                if GlobalState["echo_smugglerheist:bombsPlaced"] == #sharedConfig.bombPlacementOffsets then -- Last bomb
                                     Notify(locale('task.escape'))
                                 end
                                 
@@ -318,13 +318,16 @@ function vehicle.createCrates(positions)
 
         -- Handle dropping in air as no better way for getting it on the ground from my testing
         FreezeEntityPosition(crate, false)
+        -- Make it so can be seen from far distances
         SetEntityLodDist(crate, 1000)
+        -- Make object drop
         ActivatePhysics(crate)
         SetDamping(crate, 2, 0.1) -- Not a clue what this does but R* uses it
         SetEntityVelocity(crate, 0.0, 0.0, -0.2)
 
-        -- Make parachute drop at same rate as crate
+        -- Make it so can be seen from far distances
         SetEntityLodDist(crate, 1000)
+        -- Make parachute drop at same rate as crate
         SetEntityVelocity(parachute, 0.0, 0.0, -0.2)
 
         -- Attach the parachute to the crate
