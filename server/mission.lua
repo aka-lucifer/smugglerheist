@@ -7,14 +7,12 @@ local mission = {
 
 GlobalState["echo_smugglerheist:started"] = false
 GlobalState["echo_smugglerheist:cooldown"] = nil
-GlobalState["echo_smugglerheist:host"] = nil
 
 --- Start the mission on the creator
 ---@param source integer
 function mission.start(source)
     local src = source --[[@as number]]
     GlobalState["echo_smugglerheist:started"] = true
-    GlobalState["echo_smugglerheist:host"] = src
     vehicle.createCargo()
     vehicle.createPlane(src)
     vehicle.startDistTask()
@@ -25,7 +23,6 @@ end
 function mission.finish()
     GlobalState["echo_smugglerheist:started"] = false
     GlobalState["echo_smugglerheist:cooldown"] = os.time() + 1800 -- 30 minute cooldown
-    GlobalState["echo_smugglerheist:host"] = nil
     vehicle.finish()
     mission.openingCrate = false
     mission.itemsGiven = {}

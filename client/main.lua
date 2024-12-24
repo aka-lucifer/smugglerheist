@@ -5,35 +5,11 @@ local sharedConfig = require "config.shared"
 local mission = require "client.mission"
 local vehicle = require "client.vehicle"
 
-LoggedIn = false
+LoggedIn = true
 
 AddEventHandler("onResourceStop", function(res)
     if GetCurrentResourceName() == res then
         vehicle.deleteCrates()
-    end
-end)
-
-AddEventHandler('gameEventTriggered', function (name, args)
-    if name == 'CEventNetworkEntityDamage' then
-        local entity = args[1]
-        local isDestroyed = args[6] == 1
-        local weapon = args[7]
-
-        if not isDestroyed then return end
-        
-        if weapon ~= `WEAPON_EXPLOSION` then return end
-        if entity ~= NetToVeh(vehicle.cargoNet) then return end
-
-        lib.print.info("Cargoplane Crashed With Explosion")
-        
-        while GetEntitySpeed(entity) > 0.1 do
-            Wait(5)
-        end
-
-        lib.print.info("Cargoplane Stopped Moving")
-        if cache.serverId == GlobalState["echo_smugglerheist:host"] then
-            TriggerServerEvent("echo_smugglerheist:server:cargoDestroyed", vehicle.cargoNet)
-        end
     end
 end)
 

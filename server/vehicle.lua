@@ -299,50 +299,36 @@ RegisterNetEvent("echo_smugglerheist:server:attemptedHack", function(success)
     end
 end)
 
+---@param vehicleNet integer
 ---@param bombIndex integer
-RegisterNetEvent("echo_smugglerheist:server:bombedPlane", function(bombIndex)
+RegisterNetEvent("echo_smugglerheist:server:bombedPlane", function(vehicleNet, bombIndex)
     if not bombIndex or type(bombIndex) ~= "number" then return end
     if not GlobalState["echo_smugglerheist:started"] then return end
     if not GlobalState["echo_smugglerheist:hacked"] then return end
     if GlobalState[string.format("echo_smugglerheist:bombPlaced:%s", bombIndex)] then return end
-    
+    if vehicleNet ~= NetworkGetNetworkIdFromEntity(vehicle.cargoHandle) then return end
+
     local src = source --[[@as number]]
     local player = exports.qbx_core:GetPlayer(source)
     if not player then return end
 
     GlobalState[string.format("echo_smugglerheist:bombPlaced:%s", bombIndex)] = true
-    if bombIndex == #sharedConfig.bombPlacementOffsets then -- Bombed all
+    if bombIndex == #sharedConfig.bombPlacementOffsets then -- Bombed both engines
+        print("bombed plane")
         GlobalState["echo_smugglerheist:bombed"] = true
+        local cargoCoords = GetEntityCoords(vehicle.cargoHandle)
+        print("start crate drop")
+
+        local cratePositions = lib.callback.await("echo_smugglerheist:getCratePositions", src, cargoCoords, sharedConfig.crateCount)
+        if not cratePositions then return end
+        
+        if sharedConfig.debug then
+            print("crate positions", json.encode(cratePositions, { indent = true }))
+        end
+
+        vehicle.setupCrates()
+        TriggerClientEvent("echo_smugglerheist:client:cargoCrashed", -1, cargoCoords, cratePositions)
     end
-end)
-
-RegisterNetEvent("echo_smugglerheist:server:cargoDestroyed", function(vehicleNet)
-    print("destroy", GlobalState["echo_smugglerheist:host"])
-    if not vehicleNet or type(vehicleNet) ~= "number" then return end
-    if not GlobalState["echo_smugglerheist:started"] then return end
-    if not GlobalState["echo_smugglerheist:hacked"] then return end
-    if not GlobalState["echo_smugglerheist:bombed"] then return end
-
-    local src = source --[[@as number]]
-    if GlobalState["echo_smugglerheist:host"] ~= src then return end
-    if vehicleNet ~= NetworkGetNetworkIdFromEntity(vehicle.cargoHandle) then return end
-    if GetVehicleEngineHealth(vehicle.cargoHandle) > 0.0 then return end
-
-    local player = exports.qbx_core:GetPlayer(source)
-    if not player then return end
-
-    local cargoCoords = GetEntityCoords(vehicle.cargoHandle)
-    vehicle.deleteCargo()
-
-    local cratePositions = lib.callback.await("echo_smugglerheist:getCratePositions", src, cargoCoords, sharedConfig.crateCount)
-    if not cratePositions then return end
-    
-    if sharedConfig.debug then
-        print("crate positions", json.encode(cratePositions, { indent = true }))
-    end
-
-    vehicle.setupCrates()
-    TriggerClientEvent("echo_smugglerheist:client:cargoCrashed", -1, cargoCoords, cratePositions)
 end)
 
 ---@param crateIndex integer

@@ -49,16 +49,9 @@ function vehicle.init()
             local offsetCoords = vector3(
                 cargoCoords.x + math.random(config.crateOffset.min, config.crateOffset.max),
                 cargoCoords.y + math.random(config.crateOffset.min, config.crateOffset.max),
-                cargoCoords.z
+                cargoCoords.z + config.crateHeight
             )
-            local found, zCoord = getGroundCoord(offsetCoords)
-
-            if found then
-                offsetCoords = vector(offsetCoords.x, offsetCoords.y, zCoord)
-            else
-                print("couldnt find ground, so using plane Z coord") -- This shouldn't happen as you are always near plane once it crashes [needs testing tho]
-            end
-
+            
             table.insert(offsets, offsetCoords)
         end
 
@@ -281,7 +274,7 @@ function vehicle.startBombTask(entity)
                                 local explodeCoords = GetOffsetFromEntityInWorldCoords(entity, bombPlacement.explode.x, bombPlacement.explode.y, bombPlacement.explode.z) -- Update coords again (have to do this as the plane is moving)
                                 AddExplosion(explodeCoords.x, explodeCoords.y, explodeCoords.z, 2, 1.0, true, false, 1.0)
                                 DeleteEntity(obj)
-                                TriggerServerEvent("echo_smugglerheist:server:bombedPlane", i)
+                                TriggerServerEvent("echo_smugglerheist:server:bombedPlane", vehicle.cargoNet, i)
                             end
 
                             plantingBomb = false
@@ -305,27 +298,57 @@ function vehicle.startBombTask(entity)
     end)
 end
 
+local crateHeights = {}
+
 ---comment
 ---@param positions vector3[]
 function vehicle.createCrates(positions)
+    -- Request the models
     lib.requestModel(`ex_prop_crate_closed_mw`)
+    lib.requestModel(`p_cargo_chute_s`)
+
     for i = 1, #positions do
-        local obj = CreateObject(`ex_prop_crate_closed_mw`, positions[i].x, positions[i].y, positions[i].z, false, false, false)
+        local crate = CreateObject(`ex_prop_crate_closed_mw`, positions[i].x, positions[i].y, positions[i].z, false, false, false)
+        local parachute = CreateObject(`p_cargo_chute_s`, positions[i].x, positions[i].y, positions[i].z, false, false, false)
         local exists = lib.waitFor(function()
-            if DoesEntityExist(obj) then return true end
+            if DoesEntityExist(crate) and DoesEntityExist(parachute) then return true end
         end)
 
         if not exists then return end
 
-        PlaceObjectOnGroundProperly(obj)
-        FreezeEntityPosition(obj, true) -- Freeze crate position
-        table.insert(vehicle.crates, obj)
-        
-        if sharedConfig.debug then
-            AddBlipForCoord(positions[i].x, positions[i].y, positions[i].z)
-        end
+        -- Handle dropping in air as no better way for getting it on the ground from my testing
+        FreezeEntityPosition(crate, false)
+        SetEntityLodDist(crate, 1000)
+        ActivatePhysics(crate)
+        SetDamping(crate, 2, 0.1) -- Not a clue what this does but R* uses it
+        SetEntityVelocity(crate, 0.0, 0.0, -0.2)
 
-        exports.ox_target:addLocalEntity(obj, {
+        -- Make parachute drop at same rate as crate
+        SetEntityLodDist(crate, 1000)
+        SetEntityVelocity(parachute, 0.0, 0.0, -0.2)
+
+        -- Attach the parachute to the crate
+        AttachEntityToEntity(parachute, crate, 0, 0.0, 0.0, 0.1, 0.0, 0.0, 0.0, false, false, false, false, 2, true)
+
+        table.insert(vehicle.crates, {
+            object = crate,
+            chuteLink = parachute,
+            chute = false
+        })
+
+        table.insert(vehicle.crates, {
+            object = parachute,
+            crateLink = crate,
+            chute = true,
+            onGround = false
+        })
+
+        if sharedConfig.debug then
+            -- AddBlipForCoord(positions[i].x, positions[i].y, positions[i].z)
+            AddBlipForEntity(crate)
+        end
+        
+        exports.ox_target:addLocalEntity(crate, {
             {
                 name = "collect_crate",
                 label = locale("target.open_crate"),
@@ -345,17 +368,58 @@ function vehicle.createCrates(positions)
             }
         })
     end
+
+    -- Wait a second to start processing to make shit they don't collide with plane 
+
+    Wait(1000)
+    -- Thread for checking if object is on ground yet or not, if so delete parachute
+    local allLanded = false
+    local finishCount = 0
+
+    CreateThread(function()
+        while not allLanded do
+            for i = 1, #vehicle.crates do
+                if vehicle.crates[i].chute and not vehicle.crates[i].onGround then
+
+                    while not crateHeights[vehicle.crates[i].object] or GetEntityHeightAboveGround(vehicle.crates[i].object) ~= crateHeights[vehicle.crates[i].object] do
+                        crateHeights[vehicle.crates[i].object] = GetEntityHeightAboveGround(vehicle.crates[i].object)
+                        Wait(5)
+                    end
+
+                    vehicle.crates[i].onGround = true
+                    
+                    -- Run this to place flat on ground incase it rolled over or whatever
+                    PlaceObjectOnGroundProperly(vehicle.crates[i].crateLink)
+                    
+                    -- Now freeze it, as it's in a correct place
+                    FreezeEntityPosition(vehicle.crates[i].crateLink, true)
+
+                    -- Delete the parachute
+                    DeleteEntity(vehicle.crates[i].object)
+                    if sharedConfig.debug then lib.print.info("crate stopped moving") end
+
+                    finishCount += 1
+                end
+            end
+
+
+            if finishCount == sharedConfig.crateCount then allLanded = true end
+            Wait(250)
+        end
+    end)
+
+    table.wipe(crateHeights)
 end
 
 -- Remove all crates from the cargoplane
 function vehicle.deleteCrates()
     for i = 1, #vehicle.crates do
-        if vehicle.crates[i] and DoesEntityExist(vehicle.crates[i]) then
-            DeleteEntity(vehicle.crates[i])
+        if DoesEntityExist(vehicle.crates[i].object) then
+            DeleteEntity(vehicle.crates[i].object)
         end
     end
 
-    vehicle.crates = {}
+    table.wipe(vehicle.crates)
 end
 
 -- Clean up memory
@@ -451,9 +515,9 @@ end)
 ---@param crateIndex integer
 RegisterNetEvent("echo_smugglerheist:client:openedCrate", function(crateIndex)
     if not crateIndex or type(crateIndex) ~= "number" then return end
-    if vehicle.crates[crateIndex] and DoesEntityExist(vehicle.crates[crateIndex]) then
-        exports.ox_target:removeLocalEntity(vehicle.crates[crateIndex], "collect_crate")
-        DeleteEntity(vehicle.crates[crateIndex])
+    if vehicle.crates[crateIndex] and DoesEntityExist(vehicle.crates[crateIndex].object) then
+        exports.ox_target:removeLocalEntity(vehicle.crates[crateIndex].object, "collect_crate")
+        DeleteEntity(vehicle.crates[crateIndex].object)
         table.remove(vehicle.crates, crateIndex)
     end
 end)

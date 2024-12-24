@@ -24,6 +24,7 @@ return {
             length = 5 * 60000 -- How long until it deletes in MS
         }
     },
+    crateHeight = 20.0, -- How high above the plane to spawn crates (better method than groundZ as that native doesn't work in render dist, in prod could implement parachutes on crates or smth)
     crateOffset = { min = -200.0, max = 200.0},
     dropOff = vec4(-1667.04, -887.83, 7.64, 121.99)
 }
